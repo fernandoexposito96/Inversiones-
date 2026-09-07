@@ -13,132 +13,36 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></div>
-        <div><strong>Mi Control</strong><small>Ganancias & pérdidas</small></div>
-      </div>
+      <div class="brand"><div class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></div><div><strong>Mi Control</strong><small>Ganancias & pérdidas</small></div></div>
       <nav class="desktop-nav" aria-label="Navegación principal">
-        <button class="nav-item active" data-view="home">Inicio</button>
-        <button class="nav-item" data-view="history">Registro</button>
-        <button class="nav-item" data-view="stats">Estadísticas</button>
-        <button class="nav-item" data-view="goals">Objetivos</button>
-        <button class="nav-item" data-view="settings">Ajustes</button>
+        <button class="nav-item active" data-view="home">Inicio</button><button class="nav-item" data-view="history">Registro</button><button class="nav-item" data-view="stats">Estadísticas</button><button class="nav-item" data-view="goals">Objetivos</button><button class="nav-item" data-view="settings">Ajustes</button>
       </nav>
-      <div class="privacy-note">Privado · Sin bancos · Sin conexiones externas</div>
+      <div class="privacy-note">Control personal privado</div>
     </aside>
-
     <main class="main">
       <section class="view active" id="view-home">
-        <header class="topbar">
-          <div><p class="eyebrow">TU RESUMEN</p><h1>Mi Control</h1><p class="subtitle">Apunta cada movimiento y deja que la app haga las cuentas.</p></div>
-          <button class="primary compact" id="openAdd">+ Añadir</button>
-        </header>
-
-        <div class="period-tabs" id="periodTabs">
-          <button data-period="today">Hoy</button><button class="active" data-period="week">Semana</button><button data-period="month">Mes</button><button data-period="all">Todo</button>
-        </div>
-
+        <header class="topbar"><div><p class="eyebrow">TU RESUMEN</p><h1>Mi Control</h1><p class="subtitle">Apunta cada movimiento y deja que la app haga las cuentas.</p></div><button class="primary compact" id="openAdd">+ Añadir</button></header>
+        <div class="period-tabs" id="periodTabs"><button data-period="today">Hoy</button><button class="active" data-period="week">Semana</button><button data-period="month">Mes</button><button data-period="all">Todo</button></div>
         <div class="metric-grid">
           <article class="metric"><span>Total apostado</span><strong id="totalStaked">0,00 €</strong><small id="stakeSub">0 movimientos</small></article>
           <article class="metric positive"><span>Total cobrado</span><strong id="totalReturned">0,00 €</strong><small>Importe recibido</small></article>
           <article class="metric negative"><span>Pérdidas</span><strong id="totalLosses">0,00 €</strong><small>Resultado negativo</small></article>
-          <article class="metric positive" id="netCard"><span>Beneficio neto</span><strong id="netProfit">0,00 €</strong><small id="netSub">Resultado acumulado</small></article>
+          <article class="metric positive" id="netCard"><span>Beneficio neto</span><strong id="netProfit">0,00 €</strong><small>Resultado acumulado</small></article>
         </div>
-
         <div class="dashboard-grid">
-          <article class="panel chart-panel">
-            <div class="panel-head"><div><h2>Evolución del saldo</h2><p id="chartLabel">Esta semana</p></div><strong id="chartNet">0,00 €</strong></div>
-            <canvas id="balanceChart" width="1000" height="330" aria-label="Gráfica de evolución"></canvas>
-          </article>
-
-          <article class="panel quick-panel">
-            <div class="panel-head"><div><h2>Añadir movimiento</h2><p>Registro rápido</p></div></div>
-            <form id="quickForm" class="form-grid">
-              <label>Fecha<input type="date" id="qDate" required /></label>
-              <label>Apostado (€)<input type="number" id="qStake" min="0" step="0.01" placeholder="50" required /></label>
-              <label>Cobrado (€)<input type="number" id="qReturned" min="0" step="0.01" placeholder="150" required /></label>
-              <label>Nota<input type="text" id="qNote" maxlength="80" placeholder="Ej. Partido, apuesta..." /></label>
-              <button class="primary" type="submit">Guardar movimiento</button>
-            </form>
-            <p class="formula">Ejemplo: 50 € apostados y 150 € cobrados = <b>+100 € netos</b>.</p>
-          </article>
+          <article class="panel chart-panel"><div class="panel-head"><div><h2>Evolución del saldo</h2><p id="chartLabel">Esta semana</p></div><strong id="chartNet">0,00 €</strong></div><canvas id="balanceChart" width="1000" height="330" aria-label="Gráfica de evolución"></canvas></article>
+          <article class="panel quick-panel"><div class="panel-head"><div><h2>Añadir movimiento</h2><p>Registro rápido</p></div></div><form id="quickForm" class="form-grid"><label>Fecha<input type="date" id="qDate" required /></label><label>Apostado (€)<input type="number" id="qStake" min="0" step="0.01" placeholder="50" required /></label><label>Cobrado (€)<input type="number" id="qReturned" min="0" step="0.01" placeholder="150" required /></label><label>Nota<input type="text" id="qNote" maxlength="80" placeholder="Ej. Partido, apuesta..." /></label><button class="primary" type="submit">Guardar movimiento</button></form><p class="formula">Ejemplo: 50 € apostados y 150 € cobrados = <b>+100 € netos</b>.</p></article>
         </div>
-
-        <article class="panel recent-panel">
-          <div class="panel-head"><div><h2>Últimos movimientos</h2><p>Los más recientes</p></div><button class="text-btn" data-go="history">Ver todos</button></div>
-          <div id="recentList" class="movement-list"></div>
-        </article>
+        <article class="panel recent-panel"><div class="panel-head"><div><h2>Últimos movimientos</h2><p>Los más recientes</p></div><button class="text-btn" data-go="history">Ver todos</button></div><div id="recentList" class="movement-list"></div></article>
       </section>
-
-      <section class="view" id="view-history">
-        <header class="topbar"><div><p class="eyebrow">REGISTRO</p><h1>Todos los movimientos</h1><p class="subtitle">Edita, revisa o elimina cualquier entrada.</p></div><button class="primary compact" id="openAdd2">+ Añadir</button></header>
-        <article class="panel">
-          <div class="filters"><input id="searchInput" type="search" placeholder="Buscar por nota..." /><select id="historyPeriod"><option value="all">Todo</option><option value="today">Hoy</option><option value="week">Esta semana</option><option value="month">Este mes</option></select></div>
-          <div id="historyList" class="movement-list full"></div>
-        </article>
-      </section>
-
-      <section class="view" id="view-stats">
-        <header class="topbar"><div><p class="eyebrow">ESTADÍSTICAS</p><h1>Tu rendimiento</h1><p class="subtitle">Una lectura clara de cómo vas.</p></div></header>
-        <div class="stats-grid">
-          <article class="panel stat-box"><span>Movimientos</span><strong id="sCount">0</strong></article>
-          <article class="panel stat-box"><span>Ganadores</span><strong id="sWins">0</strong></article>
-          <article class="panel stat-box"><span>Perdedores</span><strong id="sLosses">0</strong></article>
-          <article class="panel stat-box"><span>Acierto</span><strong id="sHit">0%</strong></article>
-          <article class="panel stat-box"><span>ROI</span><strong id="sRoi">0%</strong></article>
-          <article class="panel stat-box"><span>Media neta</span><strong id="sAvg">0,00 €</strong></article>
-          <article class="panel stat-box"><span>Mejor resultado</span><strong id="sBest">0,00 €</strong></article>
-          <article class="panel stat-box"><span>Peor resultado</span><strong id="sWorst">0,00 €</strong></article>
-        </div>
-        <article class="panel"><div class="panel-head"><div><h2>Comparativa semanal</h2><p>Semana actual frente a la anterior</p></div></div><div class="comparison"><div><span>Esta semana</span><strong id="thisWeek">0,00 €</strong></div><div><span>Semana anterior</span><strong id="prevWeek">0,00 €</strong></div><div><span>Diferencia</span><strong id="weekDiff">0,00 €</strong></div></div></article>
-      </section>
-
-      <section class="view" id="view-goals">
-        <header class="topbar"><div><p class="eyebrow">OBJETIVOS</p><h1>Tu límite personal</h1><p class="subtitle">Define una meta y un límite para mantener el control.</p></div></header>
-        <article class="panel goal-card">
-          <div class="form-grid two-col">
-            <label>Objetivo mensual (€)<input id="goalProfit" type="number" min="0" step="1" placeholder="300" /></label>
-            <label>Límite de pérdidas (€)<input id="goalLoss" type="number" min="0" step="1" placeholder="150" /></label>
-          </div>
-          <button class="primary" id="saveGoals">Guardar objetivos</button>
-          <div class="goal-progress"><div><span>Progreso del mes</span><strong id="goalProgressText">Sin objetivo</strong></div><div class="progress"><i id="goalProgressBar"></i></div></div>
-        </article>
-      </section>
-
-      <section class="view" id="view-settings">
-        <header class="topbar"><div><p class="eyebrow">AJUSTES</p><h1>Datos y privacidad</h1><p class="subtitle">Todo permanece en este dispositivo.</p></div></header>
-        <article class="panel settings-list">
-          <div class="setting-row"><div><strong>Almacenamiento local</strong><small>Los movimientos se guardan en este navegador.</small></div><span class="status ok">Activo</span></div>
-          <div class="setting-row"><div><strong>Bancos y cuentas</strong><small>No existe ninguna conexión bancaria.</small></div><span class="status">Desactivado</span></div>
-          <div class="setting-row"><div><strong>Aplicaciones externas</strong><small>No se comparten datos con otras apps.</small></div><span class="status">Ninguna</span></div>
-          <div class="setting-row actions-row"><button class="secondary" id="exportCsv">Exportar CSV</button><button class="secondary" id="exportJson">Copia JSON</button><label class="secondary file-label">Importar JSON<input id="importJson" type="file" accept="application/json" hidden /></label></div>
-          <div class="setting-row"><button class="danger-btn" id="clearData">Borrar todos mis datos</button></div>
-        </article>
-      </section>
+      <section class="view" id="view-history"><header class="topbar"><div><p class="eyebrow">REGISTRO</p><h1>Todos los movimientos</h1><p class="subtitle">Edita, revisa o elimina cualquier entrada.</p></div><button class="primary compact" id="openAdd2">+ Añadir</button></header><article class="panel"><div class="filters"><input id="searchInput" type="search" placeholder="Buscar por nota..." /><select id="historyPeriod"><option value="all">Todo</option><option value="today">Hoy</option><option value="week">Esta semana</option><option value="month">Este mes</option></select></div><div id="historyList" class="movement-list full"></div></article></section>
+      <section class="view" id="view-stats"><header class="topbar"><div><p class="eyebrow">ESTADÍSTICAS</p><h1>Tu rendimiento</h1><p class="subtitle">Una lectura clara de cómo vas.</p></div></header><div class="stats-grid"><article class="panel stat-box"><span>Movimientos</span><strong id="sCount">0</strong></article><article class="panel stat-box"><span>Ganadores</span><strong id="sWins">0</strong></article><article class="panel stat-box"><span>Perdedores</span><strong id="sLosses">0</strong></article><article class="panel stat-box"><span>Acierto</span><strong id="sHit">0%</strong></article><article class="panel stat-box"><span>ROI</span><strong id="sRoi">0%</strong></article><article class="panel stat-box"><span>Media neta</span><strong id="sAvg">0,00 €</strong></article><article class="panel stat-box"><span>Mejor resultado</span><strong id="sBest">0,00 €</strong></article><article class="panel stat-box"><span>Peor resultado</span><strong id="sWorst">0,00 €</strong></article></div><article class="panel"><div class="panel-head"><div><h2>Comparativa semanal</h2><p>Semana actual frente a la anterior</p></div></div><div class="comparison"><div><span>Esta semana</span><strong id="thisWeek">0,00 €</strong></div><div><span>Semana anterior</span><strong id="prevWeek">0,00 €</strong></div><div><span>Diferencia</span><strong id="weekDiff">0,00 €</strong></div></div></article></section>
+      <section class="view" id="view-goals"><header class="topbar"><div><p class="eyebrow">OBJETIVOS</p><h1>Tu límite personal</h1><p class="subtitle">Define una meta y un límite para mantener el control.</p></div></header><article class="panel goal-card"><div class="form-grid two-col"><label>Objetivo mensual (€)<input id="goalProfit" type="number" min="0" step="1" placeholder="300" /></label><label>Límite de pérdidas (€)<input id="goalLoss" type="number" min="0" step="1" placeholder="150" /></label></div><button class="primary" id="saveGoals">Guardar objetivos</button><div class="goal-progress"><div><span>Progreso del mes</span><strong id="goalProgressText">Sin objetivo</strong></div><div class="progress"><i id="goalProgressBar"></i></div></div></article></section>
+      <section class="view" id="view-settings"><header class="topbar"><div><p class="eyebrow">AJUSTES</p><h1>Datos</h1><p class="subtitle">Tus movimientos se guardan en este dispositivo.</p></div></header><article class="panel settings-list"><div class="setting-row"><div><strong>Almacenamiento local</strong><small>Los movimientos se guardan en este navegador.</small></div><span class="status ok">Activo</span></div><div class="setting-row actions-row"><button class="secondary" id="exportCsv">Exportar CSV</button><button class="secondary" id="exportJson">Copia JSON</button><label class="secondary file-label">Importar JSON<input id="importJson" type="file" accept="application/json" hidden /></label></div><div class="setting-row"><button class="danger-btn" id="clearData">Borrar todos mis datos</button></div></article></section>
     </main>
   </div>
-
-  <nav class="mobile-nav" aria-label="Navegación móvil">
-    <button class="active" data-view="home">Inicio</button><button data-view="history">Registro</button><button class="add-fab" id="openAddMobile">+</button><button data-view="stats">Stats</button><button data-view="settings">Ajustes</button>
-  </nav>
-
-  <dialog id="entryDialog">
-    <form method="dialog" class="dialog-card" id="entryForm">
-      <div class="dialog-head"><div><h2 id="dialogTitle">Añadir movimiento</h2><p>Introduce lo apostado y lo cobrado.</p></div><button type="button" class="close-btn" id="closeDialog">×</button></div>
-      <input type="hidden" id="editId" />
-      <div class="form-grid two-col">
-        <label>Fecha<input type="date" id="entryDate" required /></label>
-        <label>Apostado (€)<input type="number" id="entryStake" min="0" step="0.01" required /></label>
-        <label>Cobrado (€)<input type="number" id="entryReturned" min="0" step="0.01" required /></label>
-        <label>Categoría<select id="entryCategory"><option>Apuesta</option><option>Fútbol</option><option>Tenis</option><option>Baloncesto</option><option>Casino</option><option>Otra</option></select></label>
-      </div>
-      <label>Nota<input type="text" id="entryNote" maxlength="100" placeholder="Opcional" /></label>
-      <div class="preview" id="entryPreview">Resultado neto: 0,00 €</div>
-      <button class="primary" type="submit">Guardar</button>
-    </form>
-  </dialog>
-
-  <div class="toast" id="toast" role="status"></div>
-  <script src="./app.js"></script>
+  <nav class="mobile-nav" aria-label="Navegación móvil"><button class="active" data-view="home">Inicio</button><button data-view="history">Registro</button><button class="add-fab" id="openAddMobile">+</button><button data-view="stats">Stats</button><button data-view="settings">Ajustes</button></nav>
+  <dialog id="entryDialog"><form method="dialog" class="dialog-card" id="entryForm"><div class="dialog-head"><div><h2 id="dialogTitle">Añadir movimiento</h2><p>Introduce lo apostado y lo cobrado.</p></div><button type="button" class="close-btn" id="closeDialog">×</button></div><input type="hidden" id="editId" /><div class="form-grid two-col"><label>Fecha<input type="date" id="entryDate" required /></label><label>Apostado (€)<input type="number" id="entryStake" min="0" step="0.01" required /></label><label>Cobrado (€)<input type="number" id="entryReturned" min="0" step="0.01" required /></label><label>Categoría<select id="entryCategory"><option>Apuesta</option><option>Fútbol</option><option>Tenis</option><option>Baloncesto</option><option>Casino</option><option>Otra</option></select></label></div><label>Nota<input type="text" id="entryNote" maxlength="100" placeholder="Opcional" /></label><div class="preview" id="entryPreview">Resultado neto: 0,00 €</div><div class="dialog-actions"><button class="danger-btn" type="button" id="deleteEntry" hidden>Eliminar</button><button class="primary" type="submit">Guardar</button></div></form></dialog>
+  <div class="toast" id="toast" role="status"></div><script src="./app.js"></script>
 </body>
 </html>
