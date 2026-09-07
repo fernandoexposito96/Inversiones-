@@ -16,7 +16,7 @@
       <div>
         <p class="eyebrow">TU RESUMEN</p>
         <h1>Mi Control</h1>
-        <p class="subtitle">Apunta lo que apuestas, lo que cobras y la app calcula el resultado.</p>
+        <p class="subtitle">Todo tu progreso en una sola pantalla.</p>
       </div>
       <button class="primary compact" id="openAdd">+ Añadir</button>
     </header>
@@ -54,8 +54,15 @@
       </article>
     </section>
 
+    <section class="stats-grid">
+      <article class="panel stat-box"><span>Ganadores</span><strong id="sWins">0</strong></article>
+      <article class="panel stat-box"><span>Perdedores</span><strong id="sLosses">0</strong></article>
+      <article class="panel stat-box"><span>% acierto</span><strong id="sHit">0%</strong></article>
+      <article class="panel stat-box"><span>ROI</span><strong id="sRoi">0%</strong></article>
+    </section>
+
     <section class="panel recent-panel">
-      <div class="panel-head"><div><h2>Últimos movimientos</h2><p>Pulsa ••• para editar o eliminar</p></div></div>
+      <div class="panel-head"><div><h2>Todo tu transcurso</h2><p>Todos los movimientos del periodo seleccionado · pulsa ••• para editar o eliminar</p></div></div>
       <div id="recentList" class="movement-list"></div>
     </section>
   </main>
