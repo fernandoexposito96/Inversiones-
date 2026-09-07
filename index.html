@@ -2,88 +2,56 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#07111f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Mi Control</title>
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./styles.css" />
+  <title>Inversiones</title>
+  <link rel="stylesheet" href="./styles.css?v=clean-1" />
 </head>
 <body>
-  <main class="main">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">TU RESUMEN</p>
-        <h1>Mi Control</h1>
-        <p class="subtitle">Todo tu progreso en una sola pantalla.</p>
-      </div>
-      <button class="primary compact" id="openAdd">+ Añadir</button>
+  <main class="app">
+    <header class="header">
+      <p>CONTROL PERSONAL</p>
+      <h1>Inversiones</h1>
     </header>
 
-    <div class="period-tabs" id="periodTabs">
+    <nav class="periods" id="periods" aria-label="Periodo">
       <button data-period="today">Hoy</button>
-      <button class="active" data-period="week">Semana</button>
+      <button data-period="week" class="active">Semana</button>
       <button data-period="month">Mes</button>
       <button data-period="all">Todo</button>
-    </div>
+    </nav>
 
-    <section class="metric-grid">
-      <article class="metric"><span>Total apostado</span><strong id="totalStaked">0,00 €</strong><small id="stakeSub">0 movimientos</small></article>
-      <article class="metric positive"><span>Total cobrado</span><strong id="totalReturned">0,00 €</strong><small>Importe recibido</small></article>
-      <article class="metric negative"><span>Pérdidas</span><strong id="totalLosses">0,00 €</strong><small>Resultado negativo</small></article>
-      <article class="metric positive" id="netCard"><span>Beneficio neto</span><strong id="netProfit">0,00 €</strong><small>Resultado acumulado</small></article>
-    </section>
-
-    <section class="dashboard-grid">
-      <article class="panel chart-panel">
-        <div class="panel-head"><div><h2>Evolución del saldo</h2><p id="chartLabel">Esta semana</p></div><strong id="chartNet">0,00 €</strong></div>
-        <canvas id="balanceChart" width="1000" height="330" aria-label="Gráfica de evolución"></canvas>
+    <section class="metrics" aria-label="Resumen">
+      <article class="metric">
+        <span>Apostado</span>
+        <strong id="staked">0,00 €</strong>
       </article>
-
-      <article class="panel quick-panel">
-        <div class="panel-head"><div><h2>Añadir movimiento</h2><p>Registro rápido</p></div></div>
-        <form id="quickForm" class="form-grid">
-          <label>Fecha<input type="date" id="qDate" required /></label>
-          <label>Apostado (€)<input type="number" id="qStake" min="0" step="0.01" placeholder="50" required /></label>
-          <label>Cobrado (€)<input type="number" id="qReturned" min="0" step="0.01" placeholder="150" required /></label>
-          <label>Nota<input type="text" id="qNote" maxlength="80" placeholder="Ej. Partido, apuesta..." /></label>
-          <button class="primary" type="submit">Guardar movimiento</button>
-        </form>
-        <p class="formula">Si pierdes todo: apostado 50 € y cobrado 0 € = <b>-50 €</b>.</p>
+      <article class="metric positive">
+        <span>Cobrado</span>
+        <strong id="returned">0,00 €</strong>
+      </article>
+      <article class="metric negative">
+        <span>Pérdida</span>
+        <strong id="loss">0,00 €</strong>
+      </article>
+      <article class="metric positive" id="netCard">
+        <span>Beneficio neto</span>
+        <strong id="net">0,00 €</strong>
       </article>
     </section>
 
-    <section class="stats-grid">
-      <article class="panel stat-box"><span>Ganadores</span><strong id="sWins">0</strong></article>
-      <article class="panel stat-box"><span>Perdedores</span><strong id="sLosses">0</strong></article>
-      <article class="panel stat-box"><span>% acierto</span><strong id="sHit">0%</strong></article>
-      <article class="panel stat-box"><span>ROI</span><strong id="sRoi">0%</strong></article>
-    </section>
-
-    <section class="panel recent-panel">
-      <div class="panel-head"><div><h2>Todo tu transcurso</h2><p>Todos los movimientos del periodo seleccionado · pulsa ••• para editar o eliminar</p></div></div>
-      <div id="recentList" class="movement-list"></div>
+    <section class="chart-card">
+      <div class="chart-head">
+        <div>
+          <h2>Gráfico de evolución</h2>
+          <p id="periodLabel">Esta semana</p>
+        </div>
+        <strong id="chartTotal">0,00 €</strong>
+      </div>
+      <canvas id="chart" width="1200" height="430" aria-label="Evolución del beneficio neto"></canvas>
     </section>
   </main>
 
-  <dialog id="entryDialog">
-    <form method="dialog" class="dialog-card" id="entryForm">
-      <div class="dialog-head"><div><h2 id="dialogTitle">Añadir movimiento</h2><p>Introduce lo apostado y lo cobrado.</p></div><button type="button" class="close-btn" id="closeDialog">×</button></div>
-      <input type="hidden" id="editId" />
-      <div class="form-grid two-col">
-        <label>Fecha<input type="date" id="entryDate" required /></label>
-        <label>Apostado (€)<input type="number" id="entryStake" min="0" step="0.01" required /></label>
-        <label>Cobrado (€)<input type="number" id="entryReturned" min="0" step="0.01" required /></label>
-        <label>Categoría<select id="entryCategory"><option>Apuesta</option><option>Fútbol</option><option>Tenis</option><option>Baloncesto</option><option>Casino</option><option>Otra</option></select></label>
-      </div>
-      <label>Nota<input type="text" id="entryNote" maxlength="100" placeholder="Opcional" /></label>
-      <div class="preview" id="entryPreview">Resultado neto: 0,00 €</div>
-      <div class="dialog-actions"><button class="danger-btn" type="button" id="deleteEntry" hidden>Eliminar</button><button class="primary" type="submit">Guardar</button></div>
-    </form>
-  </dialog>
-
-  <div class="toast" id="toast" role="status"></div>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=clean-1"></script>
 </body>
 </html>
