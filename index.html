@@ -6,21 +6,76 @@
   <meta name="theme-color" content="#07111f" />
   <title>Inversiones</title>
   <style>
-    :root{--bg:#07111f;--panel:#0d1b2d;--line:#20354f;--text:#f3f7fb;--muted:#8da0b7;--green:#3ee68a;--red:#ff616d;--blue:#4c91ff}
-    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg)}
-    body{color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 20% 0,#10253f 0,#07111f 34%,#050c16 100%)}
-    button,input{font:inherit}.app{width:min(980px,100%);margin:0 auto;padding:24px 16px 36px}.header{margin-bottom:18px}.header h1{margin:0;font-size:34px;letter-spacing:-.045em}
-    .periods{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.periods button{border:1px solid var(--line);background:#0b1828;color:#c8d6e5;padding:10px 14px;border-radius:12px;font-weight:800}.periods button.active{background:#183f6f;border-color:#315f98;color:#fff}
-    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.metric,.entry-card,.chart-card{border:1px solid var(--line);background:linear-gradient(180deg,#112238,#0a1727);border-radius:20px;box-shadow:0 16px 44px rgba(0,0,0,.2)}
-    .metric{padding:16px}.metric span{display:block;color:var(--muted);font-size:12px;font-weight:800}.metric strong{display:block;margin-top:8px;font-size:25px;letter-spacing:-.04em}.positive strong{color:var(--green)}.negative strong{color:var(--red)}
-    .entry-card{padding:16px;margin-bottom:14px}.entry-card h2{margin:0 0 12px;font-size:19px}.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.field label{display:block;color:var(--muted);font-size:12px;font-weight:800;margin:0 0 6px}.field input{width:100%;border:1px solid var(--line);background:#081523;color:#fff;border-radius:12px;padding:12px;outline:none}.field input:focus{border-color:#4c91ff}.entry-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.preview{color:var(--muted);font-size:13px}.preview strong{color:#fff}.save{border:0;border-radius:12px;background:var(--blue);color:#fff;padding:12px 16px;font-weight:900}.save:active{transform:scale(.98)}
-    .chart-card{padding:16px}.chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}.chart-head h2{margin:0;font-size:19px}.chart-head p{margin:4px 0 0;color:var(--muted);font-size:12px}.chart-head>strong{font-size:19px}#chart{display:block;width:100%;height:270px}.msg{min-height:18px;margin:8px 0 0;color:var(--green);font-size:12px;font-weight:800}
-    @media(max-width:700px){.app{padding:20px 12px 28px}.header h1{font-size:31px}.metrics{grid-template-columns:1fr 1fr}.metric{padding:14px}.metric strong{font-size:22px}.form-grid{grid-template-columns:1fr}.entry-bottom{align-items:stretch;flex-direction:column}.save{width:100%}#chart{height:230px}}
+    :root{
+      --bg:#07111f;--panel:#0e1d30;--panel2:#0a1727;--line:#203650;
+      --text:#f5f8fc;--muted:#8fa3ba;--green:#42e88c;--red:#ff626f;--blue:#4d92ff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg)}
+    body{color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 20% 0,#102641 0,#07111f 34%,#050c16 100%)}
+    button,input{font:inherit}
+    button{cursor:pointer}
+
+    .app{width:min(760px,100%);margin:0 auto;padding:24px 18px 42px}
+    .header{display:flex;align-items:end;justify-content:space-between;margin-bottom:20px}
+    .header h1{margin:0;font-size:36px;line-height:1;letter-spacing:-.045em}
+    .header small{color:var(--muted);font-weight:700}
+
+    .periods{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+    .periods button{height:50px;border:1px solid var(--line);background:#0b1828;color:#c9d6e4;border-radius:15px;font-weight:850;font-size:15px}
+    .periods button.active{background:linear-gradient(180deg,#22538d,#183d69);border-color:#3d6fa8;color:#fff;box-shadow:0 8px 22px rgba(52,121,211,.18)}
+
+    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .metric,.entry-card,.chart-card{border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--panel2));box-shadow:0 18px 48px rgba(0,0,0,.18)}
+    .metric{min-height:126px;border-radius:22px;padding:18px;display:flex;flex-direction:column;justify-content:center}
+    .metric span{color:var(--muted);font-size:13px;font-weight:800;margin-bottom:8px}
+    .metric strong{font-size:28px;line-height:1;letter-spacing:-.04em}
+    .positive strong{color:var(--green)}
+    .negative strong{color:var(--red)}
+
+    .entry-card{border-radius:24px;padding:20px;margin-bottom:16px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+    .section-head h2{margin:0;font-size:21px;letter-spacing:-.02em}
+    .section-head span{color:var(--muted);font-size:12px;font-weight:700}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field-date{grid-column:1/-1}
+    .field label{display:block;color:var(--muted);font-size:12px;font-weight:800;margin:0 0 7px}
+    .field input{width:100%;height:52px;border:1px solid var(--line);background:#071523;color:#fff;border-radius:14px;padding:0 14px;outline:none;font-size:16px;color-scheme:dark}
+    .field input:focus{border-color:#4c91ff;box-shadow:0 0 0 3px rgba(76,145,255,.1)}
+    .entry-bottom{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(143,163,186,.12)}
+    .preview{color:var(--muted);font-size:13px;line-height:1.35}
+    .preview strong{display:block;color:#fff;font-size:21px;margin-top:3px}
+    .save{height:52px;border:0;border-radius:14px;background:linear-gradient(180deg,#559aff,#4387ec);color:#fff;padding:0 22px;font-weight:900;box-shadow:0 10px 24px rgba(76,145,255,.22)}
+    .save:active{transform:scale(.985)}
+    .msg{min-height:16px;margin:9px 0 0;color:var(--green);font-size:12px;font-weight:800}
+
+    .chart-card{border-radius:24px;padding:20px}
+    .chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .chart-head h2{margin:0;font-size:21px;letter-spacing:-.02em}
+    .chart-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+    .chart-head>strong{font-size:20px}
+    #chart{display:block;width:100%;height:250px}
+
+    @media(max-width:560px){
+      .app{padding:20px 14px 34px}
+      .header{margin-bottom:18px}.header h1{font-size:33px}.header small{display:none}
+      .periods{gap:8px}.periods button{height:48px;padding:0 4px;font-size:14px;border-radius:14px}
+      .metrics{gap:10px}.metric{min-height:116px;padding:15px;border-radius:20px}.metric strong{font-size:25px}.metric span{font-size:12px}
+      .entry-card,.chart-card{padding:16px;border-radius:21px}
+      .form-grid{gap:10px}
+      .field input{height:50px}
+      .entry-bottom{grid-template-columns:1fr;margin-top:14px;padding-top:14px}
+      .save{width:100%}
+      #chart{height:225px}
+    }
   </style>
 </head>
 <body>
   <main class="app">
-    <header class="header"><h1>Inversiones</h1></header>
+    <header class="header">
+      <h1>Inversiones</h1>
+      <small>Control personal</small>
+    </header>
 
     <nav class="periods" id="periods" aria-label="Periodo">
       <button data-period="today">Hoy</button>
@@ -29,7 +84,7 @@
       <button data-period="all">Todo</button>
     </nav>
 
-    <section class="metrics">
+    <section class="metrics" aria-label="Resumen">
       <article class="metric"><span>Apostado</span><strong id="staked">0,00 €</strong></article>
       <article class="metric positive"><span>Ganado / cobrado</span><strong id="returned">0,00 €</strong></article>
       <article class="metric negative"><span>Pérdida</span><strong id="loss">0,00 €</strong></article>
@@ -37,14 +92,14 @@
     </section>
 
     <section class="entry-card">
-      <h2>Añadir movimiento</h2>
+      <div class="section-head"><h2>Añadir movimiento</h2><span>Registro rápido</span></div>
       <div class="form-grid">
-        <div class="field"><label for="date">Fecha</label><input id="date" type="date"></div>
+        <div class="field field-date"><label for="date">Fecha</label><input id="date" type="date"></div>
         <div class="field"><label for="stake">Apostado (€)</label><input id="stake" type="number" min="0" step="0.01" inputmode="decimal" placeholder="50"></div>
         <div class="field"><label for="returnedInput">Ganado / cobrado (€)</label><input id="returnedInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="150"></div>
       </div>
       <div class="entry-bottom">
-        <div class="preview">Resultado de este movimiento: <strong id="preview">0,00 €</strong></div>
+        <div class="preview">Resultado del movimiento<strong id="preview">0,00 €</strong></div>
         <button class="save" id="save" type="button">Guardar movimiento</button>
       </div>
       <p class="msg" id="msg"></p>
@@ -67,12 +122,12 @@
     function startOfWeek(date=new Date()){const d=new Date(date);d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
     function inPeriod(e){const d=new Date(e.date+'T12:00:00'),now=new Date();if(period==='all')return true;if(period==='today')return e.date===now.toISOString().slice(0,10);if(period==='week'){const s=startOfWeek(now),end=new Date(s);end.setDate(s.getDate()+7);return d>=s&&d<end}return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()}
     function currentEntries(){return entries.filter(inPeriod).sort((a,b)=>a.date.localeCompare(b.date)||Number(a.createdAt||0)-Number(b.createdAt||0))}
-    function updatePreview(){const stake=Number($('stake').value||0),returned=Number($('returnedInput').value||0),net=returned-stake;$('preview').textContent=(net>0?'+':'')+euro(net);$('preview').style.color=net<0?'#ff616d':net>0?'#3ee68a':'#fff'}
+    function updatePreview(){const stake=Number($('stake').value||0),returned=Number($('returnedInput').value||0),net=returned-stake;$('preview').textContent=(net>0?'+':'')+euro(net);$('preview').style.color=net<0?'#ff626f':net>0?'#42e88c':'#fff'}
     $('stake').addEventListener('input',updatePreview);$('returnedInput').addEventListener('input',updatePreview);
     $('save').addEventListener('click',()=>{const stake=Number($('stake').value),returned=Number($('returnedInput').value),date=$('date').value;if(!date||!Number.isFinite(stake)||stake<=0||!Number.isFinite(returned)||returned<0){$('msg').textContent='Introduce una fecha, lo apostado y lo cobrado.';return}entries.push({date,stake,returned,createdAt:Date.now()});localStorage.setItem(STORAGE_KEY,JSON.stringify(entries));$('stake').value='';$('returnedInput').value='';updatePreview();$('msg').textContent='Movimiento guardado.';render();setTimeout(()=>$('msg').textContent='',1800)});
     document.querySelectorAll('#periods button').forEach(button=>button.addEventListener('click',()=>{period=button.dataset.period;document.querySelectorAll('#periods button').forEach(b=>b.classList.toggle('active',b===button));render()}));
     function render(){const list=currentEntries();const staked=list.reduce((s,e)=>s+Number(e.stake||0),0);const returned=list.reduce((s,e)=>s+Number(e.returned||0),0);const loss=list.reduce((s,e)=>s+Math.max(0,-netOf(e)),0);const net=returned-staked;$('staked').textContent=euro(staked);$('returned').textContent=euro(returned);$('loss').textContent=euro(loss);$('net').textContent=(net>0?'+':'')+euro(net);$('chartTotal').textContent=(net>0?'+':'')+euro(net);$('netCard').classList.toggle('negative',net<0);$('netCard').classList.toggle('positive',net>=0);$('periodLabel').textContent={today:'Hoy',week:'Esta semana',month:'Este mes',all:'Todo el tiempo'}[period];drawChart(list)}
-    function drawChart(list){const canvas=$('chart'),ctx=canvas.getContext('2d'),rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.max(320,Math.round(rect.width*dpr));canvas.height=Math.max(220,Math.round(rect.height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);const w=rect.width,h=rect.height,p=34;ctx.clearRect(0,0,w,h);ctx.strokeStyle='rgba(150,180,210,.12)';ctx.lineWidth=1;for(let i=0;i<5;i++){const y=p+(h-p*2)*i/4;ctx.beginPath();ctx.moveTo(p,y);ctx.lineTo(w-p,y);ctx.stroke()}let cumulative=0;let points=list.map(e=>(cumulative+=netOf(e)));if(!points.length)points=[0];const min=Math.min(0,...points),max=Math.max(0,...points),span=Math.max(1,max-min),step=(w-p*2)/Math.max(1,points.length-1),coords=points.map((v,i)=>[p+i*step,h-p-((v-min)/span)*(h-p*2)]);ctx.beginPath();coords.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.strokeStyle=cumulative>=0?'#3ee68a':'#ff616d';ctx.lineWidth=3;ctx.stroke();ctx.lineTo(coords[coords.length-1][0],h-p);ctx.lineTo(coords[0][0],h-p);ctx.closePath();const g=ctx.createLinearGradient(0,p,0,h);g.addColorStop(0,cumulative>=0?'rgba(62,230,138,.20)':'rgba(255,97,109,.18)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fill()}
+    function drawChart(list){const canvas=$('chart'),ctx=canvas.getContext('2d'),rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.max(320,Math.round(rect.width*dpr));canvas.height=Math.max(220,Math.round(rect.height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);const w=rect.width,h=rect.height,p=34;ctx.clearRect(0,0,w,h);ctx.strokeStyle='rgba(150,180,210,.12)';ctx.lineWidth=1;for(let i=0;i<5;i++){const y=p+(h-p*2)*i/4;ctx.beginPath();ctx.moveTo(p,y);ctx.lineTo(w-p,y);ctx.stroke()}let cumulative=0;let points=list.map(e=>(cumulative+=netOf(e)));if(!points.length)points=[0];const min=Math.min(0,...points),max=Math.max(0,...points),span=Math.max(1,max-min),step=(w-p*2)/Math.max(1,points.length-1),coords=points.map((v,i)=>[p+i*step,h-p-((v-min)/span)*(h-p*2)]);ctx.beginPath();coords.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.strokeStyle=cumulative>=0?'#42e88c':'#ff626f';ctx.lineWidth=3;ctx.stroke();ctx.lineTo(coords[coords.length-1][0],h-p);ctx.lineTo(coords[0][0],h-p);ctx.closePath();const g=ctx.createLinearGradient(0,p,0,h);g.addColorStop(0,cumulative>=0?'rgba(66,232,140,.20)':'rgba(255,98,111,.18)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fill()}
     window.addEventListener('resize',()=>drawChart(currentEntries()));
     if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))}
     if('caches'in window){caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)))}
