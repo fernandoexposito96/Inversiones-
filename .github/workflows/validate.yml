@@ -10,5 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check single-file app
-        run: test -f index.html
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check required files
+        run: test -f index.html && test -f core.js && test -f app.js && test -f tests.cjs
+      - name: Check JavaScript syntax
+        run: |
+          node --check core.js
+          node --check app.js
+          node --check tests.cjs
+      - name: Run calculation tests
+        run: node tests.cjs
+      - name: Check app wiring
+        run: |
+          grep -q '<script src="core.js"></script>' index.html
+          grep -q '<script src="app.js"></script>' index.html
+          grep -q 'id="tabInvest"' index.html
+          grep -q 'id="tabGoal"' index.html
+          grep -q 'id="historyList"' index.html
+          grep -q 'id="goalDaily"' index.html
