@@ -10,10 +10,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Check JavaScript syntax
-        run: node --check app.js
-      - name: Check current app files
-        run: test -f index.html && test -f styles.css && test -f app.js
+      - name: Check single-file app
+        run: test -f index.html
