@@ -3,7 +3,7 @@
   const C=window.InversionesCore;
   if(!C)throw new Error('No se ha cargado core.js');
   const KEY='mi-control.entries.v1',BACKUP_KEY=KEY+'.backup',GOAL=3000,START='2026-09-07',END='2026-12-06',TOTAL=90,TZ='Europe/Madrid';
-  let entries=[],period='week',lastDate='',saving=false;
+  let entries=[],period='week',lastDate='',saving=false,undoState=null,undoTimer=null;
   const $=id=>document.getElementById(id);
   const euro=v=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(Number(v||0));
   const pct=v=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:1}).format(Number(v||0))+'%';
@@ -44,7 +44,7 @@
   load();
 
   function syncDateDisplay(){const v=$('date').value;$('dateDisplay').textContent=C.validDate(v)?full(D(v)):'Seleccionar fecha'}
-  function timeUI(){const i=iso();$('todayText').textContent=full(D(i));$('spainClock').textContent=clock();if(!$('date').value||$('date').dataset.auto==='1'){$('date').value=i;$('date').dataset.auto='1'}syncDateDisplay();lastDate=i}
+  function timeUI(){const i=iso();$('todayText').textContent=full(D(i));$('spainClock').textContent=clock();$('date').max=i;if(!$('date').value||$('date').dataset.auto==='1'){$('date').value=i;$('date').dataset.auto='1'}syncDateDisplay();lastDate=i}
   $('date').onchange=()=>{$('date').dataset.auto='0';syncDateDisplay()};
   timeUI();
 
@@ -67,22 +67,57 @@
   $('save').onclick=()=>{
     if(saving)return;
     const stake=Number($('stake').value),returned=Number($('returnedInput').value),date=$('date').value;
-    const candidate=C.normalizeEntry({id:(crypto&&crypto.randomUUID?crypto.randomUUID():`m-${Date.now()}-${Math.random().toString(36).slice(2,8)}`),date,stake,returned,createdAt:Date.now()},entries.length);
+    if(date>iso()){setMsg('La fecha no puede ser posterior a hoy.',false);return}
+    const randomId=globalThis.crypto?.randomUUID?.()||`m-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const candidate=C.normalizeEntry({id:randomId,date,stake,returned,createdAt:Date.now()},entries.length);
     if(!candidate){setMsg('Introduce una fecha y cantidades válidas.',false);return}
     saving=true;$('save').disabled=true;$('save').style.opacity='.7';
     const ok=persist([...entries,candidate]);
-    if(ok){$('stake').value='';$('returnedInput').value='';preview();setMsg('Movimiento guardado.');renderInvest();if($('goalView').classList.contains('active'))renderGoal();setTimeout(()=>setMsg(''),1500)}else setMsg('No se ha podido guardar. No se ha perdido ningún dato.',false);
-    saving=false;$('save').disabled=false;$('save').style.opacity='';
+    if(ok){$('stake').value='';$('returnedInput').value='';preview();setMsg('Movimiento guardado.');renderInvest();if($('goalView').classList.contains('active'))renderGoal();setTimeout(()=>setMsg(''),1500);setTimeout(()=>{saving=false;$('save').disabled=false;$('save').style.opacity=''},650)}else{setMsg('No se ha podido guardar. No se ha perdido ningún dato.',false);saving=false;$('save').disabled=false;$('save').style.opacity=''}
   };
+
+  function ensureTools(){
+    if($('dataTools'))return;
+    const style=document.createElement('style');style.textContent='.dataTools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.dataTool{border:1px solid #2f75af;background:#061a30;color:#dff0ff;border-radius:10px;padding:6px 9px;font-size:9px;font-weight:900}.undoToast{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:50;width:min(420px,calc(100% - 24px));display:none;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border:1px solid #2f75af;border-radius:13px;background:rgba(4,21,40,.97);box-shadow:0 12px 35px rgba(0,0,0,.4);color:#eef7ff;font-size:11px}.undoToast button{border:0;border-radius:9px;padding:7px 10px;background:#168cff;color:#fff;font-weight:900}';document.head.appendChild(style);
+    const count=$('historyCount');const head=count?.parentElement;if(head){const tools=document.createElement('div');tools.id='dataTools';tools.className='dataTools';tools.innerHTML='<button id="exportData" class="dataTool" type="button">Guardar copia</button><button id="importData" class="dataTool" type="button">Restaurar</button><input id="importFile" type="file" accept="application/json,.json" hidden>';head.appendChild(tools)}
+    const toast=document.createElement('div');toast.id='undoToast';toast.className='undoToast';toast.innerHTML='<span>Movimiento eliminado.</span><button id="undoDelete" type="button">Deshacer</button>';document.body.appendChild(toast);
+    $('exportData').onclick=exportBackup;$('importData').onclick=()=>$('importFile').click();$('importFile').onchange=importBackup;$('undoDelete').onclick=undoDelete;
+    const avg=$('statAvg');const avgLabel=avg?.parentElement?.querySelector('span');if(avgLabel)avgLabel.textContent='Media / día con movimiento';
+  }
+  async function exportBackup(){
+    const payload={app:'Inversiones',version:1,exportedAt:new Date().toISOString(),entries:normalizeList(entries)};
+    const text=JSON.stringify(payload,null,2),name=`inversiones-copia-${iso()}.json`,file=new File([text],name,{type:'application/json'});
+    try{
+      if(navigator.canShare?.({files:[file]})){await navigator.share({title:'Copia de Inversiones',files:[file]});return}
+      const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(err){if(err?.name!=='AbortError'){console.error(err);alert('No se ha podido crear la copia de seguridad.')}}
+  }
+  async function importBackup(ev){
+    const file=ev.target.files?.[0];ev.target.value='';if(!file)return;
+    try{
+      const data=JSON.parse(await file.text()),list=Array.isArray(data)?data:data?.entries,clean=normalizeList(list);
+      if(!Array.isArray(list)||clean.length!==list.length)throw new Error('Copia inválida');
+      if(!confirm(`¿Restaurar ${clean.length} movimiento${clean.length===1?'':'s'}? Se sustituirán los datos actuales.`))return;
+      if(!persist(clean))throw new Error('No se pudo guardar');
+      renderActive();alert('Copia restaurada correctamente.');
+    }catch(err){console.error(err);alert('La copia no es válida o no se ha podido restaurar.')}
+  }
 
   $('historyList').addEventListener('click',ev=>{
     const btn=ev.target.closest('[data-del]');if(!btn)return;
-    const id=btn.dataset.del,entry=entries.find(e=>e.id===id);if(!entry)return;
+    const id=btn.dataset.del,index=entries.findIndex(e=>e.id===id);if(index<0)return;
     if(!confirm('¿Eliminar este movimiento?'))return;
-    const next=entries.filter(e=>e.id!==id);
+    const entry=entries[index],next=entries.filter(e=>e.id!==id);
     if(!persist(next)){alert('No se ha podido eliminar. El movimiento sigue guardado.');return}
+    undoState={entry,index};clearTimeout(undoTimer);$('undoToast').style.display='flex';undoTimer=setTimeout(()=>{undoState=null;$('undoToast').style.display='none'},7000);
     renderInvest();if($('goalView').classList.contains('active'))renderGoal();
   });
+  function undoDelete(){
+    if(!undoState)return;
+    const next=[...entries];next.splice(Math.min(undoState.index,next.length),0,undoState.entry);
+    if(!persist(next)){alert('No se ha podido recuperar el movimiento.');return}
+    clearTimeout(undoTimer);undoState=null;$('undoToast').style.display='none';renderActive();
+  }
 
   function renderHistory(a){
     $('historyCount').textContent=`${a.length} movimiento${a.length===1?'':'s'}`;
@@ -115,6 +150,7 @@
     $('goalMovementCount').textContent=`${a.length} movimiento${a.length===1?'':'s'}`;if(!a.length)$('goalHistory').innerHTML='<div class="empty">Todavía no hay movimientos dentro de esta meta.</div>';else{let cum=0;$('goalHistory').innerHTML='<div class="tableWrap"><table class="table"><thead><tr><th>Fecha</th><th>Apostado</th><th>Cobrado</th><th>Neto</th><th>Acumulado</th></tr></thead><tbody>'+a.map(e=>{const n=net(e);cum=C.money(cum+n);return `<tr><td>${full(D(e.date))}</td><td>${euro(e.stake)}</td><td>${euro(e.returned)}</td><td class="${n<0?'negative':'positive'}">${n>0?'+':''}${euro(n)}</td><td>${euro(cum)}</td></tr>`}).join('')+'</tbody></table></div>'}
   }
   function renderActive(){if($('goalView').classList.contains('active'))renderGoal();else renderInvest()}
+  ensureTools();
   window.addEventListener('storage',()=>{load();renderActive()});
   window.addEventListener('pageshow',()=>{load();timeUI();show(false)});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){load();timeUI();renderActive()}});
