@@ -22,6 +22,10 @@ function renderHome(){
   const returned=sum(list,e=>Number(e.returned));
   const losses=sum(list,e=>Math.max(0,-netOf(e)));
   const net=returned-staked;
+  const nets=list.map(netOf);
+  const wins=nets.filter(n=>n>0).length;
+  const lossCount=nets.filter(n=>n<0).length;
+
   el('totalStaked').textContent=euro(staked);
   el('totalReturned').textContent=euro(returned);
   el('totalLosses').textContent=euro(losses);
@@ -31,7 +35,13 @@ function renderHome(){
   el('netCard').classList.toggle('positive',net>=0);
   el('chartNet').textContent=(net>0?'+':'')+euro(net);
   el('chartLabel').textContent={today:'Hoy',week:'Esta semana',month:'Este mes',all:'Todo el tiempo'}[activePeriod];
-  renderMovementList(el('recentList'),[...list].reverse().slice(0,8));
+
+  el('sWins').textContent=wins;
+  el('sLosses').textContent=lossCount;
+  el('sHit').textContent=list.length?`${Math.round(wins/list.length*100)}%`:'0%';
+  el('sRoi').textContent=staked?`${(net/staked*100).toFixed(1)}%`:'0%';
+
+  renderMovementList(el('recentList'),[...list].reverse());
   drawChart(list);
 }
 
