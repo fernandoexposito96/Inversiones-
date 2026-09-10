@@ -1,3 +1,9 @@
+if(typeof document!=='undefined'){
+  const uiStyle=document.createElement('style');
+  uiStyle.textContent='.today{display:none!important}';
+  document.head.appendChild(uiStyle);
+}
+
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
