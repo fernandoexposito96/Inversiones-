@@ -21,6 +21,22 @@ assert.equal(C.normalizeEntry({date:'2026-09-07',stake:'abc',returned:1}),null);
 assert.equal(C.normalizeEntry({date:'2026-09-07',stake:Infinity,returned:1}),null);
 assert.equal(C.normalizeEntry({date:'2026-09-07',stake:10,returned:Infinity}),null);
 
+// Integridad estricta: una lista dañada o IDs duplicados no se aceptan parcialmente.
+const strictGood=C.normalizeEntriesStrict([
+  {id:'a',date:'2026-09-07',stake:10,returned:12,createdAt:1},
+  {id:'b',date:'2026-09-08',stake:5,returned:0,createdAt:2}
+]);
+assert.equal(strictGood.length,2);
+assert.equal(C.normalizeEntriesStrict('mal'),null);
+assert.equal(C.normalizeEntriesStrict([{id:'a',date:'2026-09-07',stake:10,returned:12},{id:'a',date:'2026-09-08',stake:5,returned:0}]),null);
+assert.equal(C.normalizeEntriesStrict([{id:'a',date:'2026-09-07',stake:10,returned:12},{id:'b',date:'2026-02-30',stake:5,returned:0}]),null);
+
+// Metas: validación centralizada para impedir configuraciones imposibles.
+assert.deepEqual(C.validateGoal({amount:3000,start:'2026-09-07',end:'2026-12-06'}),{amount:3000,start:'2026-09-07',end:'2026-12-06'});
+assert.equal(C.validateGoal({amount:0,start:'2026-09-07',end:'2026-12-06'}),null);
+assert.equal(C.validateGoal({amount:3000,start:'2026-12-07',end:'2026-12-06'}),null);
+assert.equal(C.validateGoal({amount:Infinity,start:'2026-09-07',end:'2026-12-06'}),null);
+
 // Ganancia, pérdida y empate.
 const win=e('2026-09-07',30,50,'w');
 const loss=e('2026-09-07',100,0,'l');
@@ -53,17 +69,17 @@ assert.equal(s.loss,10);
 assert.equal(s.wins,1);
 assert.equal(s.losses,1);
 
-// Volumen alto: 1.000 movimientos sin deriva en céntimos.
+// Volumen alto: 10.000 movimientos sin deriva en céntimos.
 const bulk=[];
-for(let i=0;i<1000;i++)bulk.push(e('2026-09-07',10.01,10.02,'b'+i));
+for(let i=0;i<10000;i++)bulk.push(e('2026-09-07',10.01,10.02,'b'+i));
 s=C.summary(bulk);
-assert.equal(s.st,10010);
-assert.equal(s.rt,10020);
-assert.equal(s.n,10);
-assert.equal(s.wins,1000);
+assert.equal(s.st,100100);
+assert.equal(s.rt,100200);
+assert.equal(s.n,100);
+assert.equal(s.wins,10000);
+assert.equal(C.normalizeEntriesStrict(bulk).length,10000);
 
-// Cuenta atrás inclusiva mientras queda plazo: el 14 sep muestra 84 días,
-// tal como la interfaz acordada. El propio día final pasa a 0.
+// Cuenta atrás inclusiva mientras queda plazo: el 14 sep muestra 84 días.
 let g=C.goalClock('2026-09-07','2026-09-07','2026-12-06',91);
 assert.equal(g.elapsed,0);assert.equal(g.left,91);
 g=C.goalClock('2026-09-14','2026-09-07','2026-12-06',91);
@@ -77,6 +93,7 @@ assert.equal(g.elapsed,0);assert.equal(g.left,91);
 g=C.goalClock('2026-12-31','2026-09-07','2026-12-06',91);
 assert.equal(g.elapsed,91);assert.equal(g.left,0);
 assert.throws(()=>C.goalClock('2026-09-07','mal','2026-12-06',91));
+assert.throws(()=>C.goalClock('2026-09-07','2026-09-07','2026-12-06',0));
 
 // Media diaria: sube con pérdidas, baja con beneficios, nunca baja de cero.
 assert.equal(C.goalDaily(0,3000,84),35.71);
@@ -87,4 +104,4 @@ assert.equal(C.goalDaily(3500,3000,10),0);
 assert.equal(C.goalDaily(2999.99,3000,1),0.01);
 assert.equal(C.goalDaily(-500,3000,0),3500);
 
-console.log('OK: fechas, céntimos, pérdidas/ganancias, meta de 91 días y 1000 movimientos verificados');
+console.log('OK: integridad estricta, fechas, céntimos, pérdidas/ganancias, meta y 10.000 movimientos verificados');
