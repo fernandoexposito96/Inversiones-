@@ -13,7 +13,6 @@ const duplicated=[...counts].filter(([,n])=>n!==1);
 assert.deepEqual(duplicated,[],`IDs duplicados: ${JSON.stringify(duplicated)}`);
 
 // 2) Todo elemento estático que app.js consulta con $('id') debe existir exactamente una vez.
-// Los IDs del historial se crean deliberadamente en tiempo de ejecución.
 const dynamicIds=new Set(['movementHistory','historyCount','historyList','editOverlay','editDate','editStake','editReturned','editCancel','editSave']);
 const referenced=[...new Set([...app.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
 const missing=referenced.filter(id=>!counts.has(id)&&!dynamicIds.has(id));
@@ -56,7 +55,8 @@ assert.match(app,/parseGoalStored\(GOAL_BACKUP_KEY\)/);
 assert.match(app,/localStorage\.setItem\(BACKUP_KEY,payload\)/);
 assert.match(app,/localStorage\.setItem\(GOAL_BACKUP_KEY,payload\)/);
 assert.match(app,/localStorage\.setItem\(KEY,JSON\.stringify\(recovered\)\)/);
-assert.match(app,/localStorage\.setItem\(GOAL_KEY,JSON\.stringify\(recovered\)\)/);
+assert.match(app,/const migrated=migrateLegacyGoal\(recovered\)/);
+assert.match(app,/localStorage\.setItem\(GOAL_KEY,JSON\.stringify\(migrated\)\)/);
 
 // 9) Sincronización entre pestañas para evitar sobrescrituras con estado viejo.
 assert.match(app,/addEventListener\('storage'/);
@@ -91,7 +91,7 @@ assert.match(app,/aria-modal="true"/);
 assert.match(app,/Math\.min\(window\.devicePixelRatio\|\|1,3\)/);
 assert.match(app,/cancelAnimationFrame\(resizeRaf\)/);
 
-// 13) Orden y versionado de scripts para evitar caché vieja (deploy sustituye el token por SHA).
+// 13) Orden y versionado de scripts para evitar caché vieja.
 const corePos=html.indexOf('core.js?v=');
 const appPos=html.indexOf('app.js?v=');
 assert.ok(corePos>=0&&appPos>corePos,'core.js debe cargar antes de app.js y ambos deben estar versionados');
