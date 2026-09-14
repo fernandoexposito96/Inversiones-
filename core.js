@@ -2,6 +2,21 @@ if(typeof document!=='undefined'){
   const uiStyle=document.createElement('style');
   uiStyle.textContent='.today{display:none!important}';
   document.head.appendChild(uiStyle);
+
+  // One-time reset requested by the owner: clear movement history and totals,
+  // while preserving the configured 3,000 € goal and its dates.
+  try{
+    const RESET_KEY='mi-control.reset.zero.2026-09-14';
+    if(localStorage.getItem(RESET_KEY)!=='1'){
+      localStorage.removeItem('mi-control.entries.v1');
+      localStorage.removeItem('mi-control.entries.v1.backup');
+      localStorage.setItem('mi-control.entries.v1','[]');
+      localStorage.setItem(RESET_KEY,'1');
+    }
+  }catch(error){
+    console.warn('No se pudo completar el reinicio de movimientos',error);
+  }
+
   window.addEventListener('load',()=>{
     if(document.querySelector('script[data-evolution-live]'))return;
     const live=document.createElement('script');
