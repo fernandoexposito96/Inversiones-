@@ -60,10 +60,13 @@ assert.match(app,/localStorage\.setItem\(GOAL_KEY,JSON\.stringify\(migrated\)\)/
 
 // 9) Sincronización entre pestañas para evitar sobrescrituras con estado viejo.
 assert.match(app,/addEventListener\('storage'/);
-assert.match(app,/event\.key===KEY/);
-assert.match(app,/event\.key===BACKUP_KEY/);
-assert.match(app,/event\.key===GOAL_KEY/);
-assert.match(app,/event\.key===GOAL_BACKUP_KEY/);
+for(const keyName of ['KEY','BACKUP_KEY','GOAL_KEY','GOAL_BACKUP_KEY']){
+  assert.equal(
+    app.includes(`event.key===${keyName}`)||app.includes(`[KEY,BACKUP_KEY,GOAL_KEY,GOAL_BACKUP_KEY].includes(event.key)`),
+    true,
+    `La sincronización debe reaccionar a ${keyName}`
+  );
+}
 
 // 10) Historial nuevo: debe poder editar y eliminar, guardando de nuevo los datos.
 assert.match(app,/Movimientos guardados/);
