@@ -45,7 +45,9 @@
   }
   function migrateLegacyGoal(g){
     if(!g)return g;
-    if(g.amount===3000&&g.start==='2026-09-07'&&g.end==='2026-12-06'){
+    // La versión antigua arrancaba el 7/9. El importe podía haberse editado (p. ej. 5.000 €),
+    // así que la migración debe depender del rango legado, no del importe actual de la meta.
+    if(g.start==='2026-09-07'&&g.end==='2026-12-06'){
       const migrated={...g,start:'2026-09-01'};
       const payload=JSON.stringify(migrated);
       try{localStorage.setItem(GOAL_KEY,payload);localStorage.setItem(GOAL_BACKUP_KEY,payload)}catch(error){console.warn('No se pudo persistir la migración de la meta',error)}
