@@ -18,9 +18,7 @@ const missing=referenced.filter(id=>!counts.has(id));
 assert.deepEqual(missing,[],`IDs usados por app.js que no existen: ${missing.join(', ')}`);
 
 // 3) Estructura acordada: dos vistas superiores y una única navegación inferior de Inicio.
-for(const id of ['tabInvest','tabGoal','investView','goalView','navHome','calendar','goalDaily','daysLeft','chart','save']){
-  assert.equal(counts.get(id),1,`Debe existir exactamente una vez: ${id}`);
-}
+for(const id of ['tabInvest','tabGoal','investView','goalView','navHome','calendar','goalDaily','daysLeft','chart','save'])assert.equal(counts.get(id),1,`Debe existir exactamente una vez: ${id}`);
 assert.equal((html.match(/<nav\b[^>]*class="tabs"[^>]*>/g)||[]).length,1);
 const tabsBlock=html.match(/<nav\b[^>]*class="tabs"[^>]*>([\s\S]*?)<\/nav>/)?.[1]||'';
 assert.equal((tabsBlock.match(/<button\b/g)||[]).length,2,'Debe haber exactamente 2 pestañas superiores');
@@ -33,44 +31,56 @@ const periods=[...html.matchAll(/data-period="([^"]+)"/g)].map(m=>m[1]).sort();
 assert.deepEqual(periods,['all','month','today','week']);
 
 // 5) Sin capas/elementos antiguos que ya se eliminaron.
-for(const forbidden of ['Historial de movimientos','id="historyList"','evolution-live.js','RESET_KEY','mi-control.reset.zero']){
-  assert.equal(html.includes(forbidden)||app.includes(forbidden),false,`Resto antiguo detectado: ${forbidden}`);
-}
+for(const forbidden of ['Historial de movimientos','id="historyList"','evolution-live.js','RESET_KEY','mi-control.reset.zero'])assert.equal(html.includes(forbidden)||app.includes(forbidden),false,`Resto antiguo detectado: ${forbidden}`);
 
-// 6) El calendario debe distinguir ganancia, pérdida, neutro y vacío.
-for(const token of ["'loss'","'win'","'neutral'","'empty'"]){
-  assert.equal(app.includes(token),true,`Falta estado de calendario ${token}`);
-}
+// 6) El calendario distingue ganancia, pérdida, neutro y vacío y expone estado accesible.
+for(const token of ["'loss'","'win'","'neutral'","'empty'"])assert.equal(app.includes(token),true,`Falta estado de calendario ${token}`);
+assert.match(app,/role="listitem"/);
+assert.match(app,/aria-label=/);
 
-// 7) Guardado reforzado y protección de doble pulsación.
+// 7) Guardado reforzado y protección de doble pulsación/ID duplicado.
 assert.match(app,/if\(saving\)return/);
 assert.match(app,/saveEntries\(next\)/);
 assert.match(app,/Number\.isFinite\(stake\)/);
 assert.match(app,/Number\.isFinite\(returned\)/);
+assert.match(app,/while\(entries\.some\(x=>x\.id===id\)\)/);
 
-// 8) Copia interna y recuperación automática obligatorias.
+// 8) Integridad estricta y copias internas de movimientos y meta.
+assert.match(app,/normalizeEntriesStrict/);
 assert.match(app,/const BACKUP_KEY=KEY\+'\.shadow'/);
+assert.match(app,/const GOAL_BACKUP_KEY=GOAL_KEY\+'\.shadow'/);
 assert.match(app,/parseStored\(BACKUP_KEY\)/);
+assert.match(app,/parseGoalStored\(GOAL_BACKUP_KEY\)/);
 assert.match(app,/localStorage\.setItem\(BACKUP_KEY,payload\)/);
+assert.match(app,/localStorage\.setItem\(GOAL_BACKUP_KEY,payload\)/);
 assert.match(app,/localStorage\.setItem\(KEY,JSON\.stringify\(recovered\)\)/);
+assert.match(app,/localStorage\.setItem\(GOAL_KEY,JSON\.stringify\(recovered\)\)/);
 
 // 9) Sincronización entre pestañas para evitar sobrescrituras con estado viejo.
 assert.match(app,/addEventListener\('storage'/);
 assert.match(app,/event\.key===KEY/);
+assert.match(app,/event\.key===BACKUP_KEY/);
 assert.match(app,/event\.key===GOAL_KEY/);
+assert.match(app,/event\.key===GOAL_BACKUP_KEY/);
 
-// 10) Accesibilidad mínima de navegación y gráfica.
+// 10) Accesibilidad de navegación, teclado y gráfica.
 assert.match(html,/role="tablist"/);
 assert.match(html,/role="tab"/);
 assert.match(html,/role="tabpanel"/);
 assert.match(html,/aria-controls="investView"/);
 assert.match(html,/aria-controls="goalView"/);
-assert.match(html,/aria-label="Gráfica de evolución del resultado acumulado"/);
 assert.match(app,/aria-selected/);
+assert.match(app,/ArrowLeft/);
+assert.match(app,/ArrowRight/);
+assert.match(app,/setAttribute\('aria-label'/);
 
-// 11) Orden y versionado de scripts para evitar caché vieja.
+// 11) Rendimiento visual protegido: DPR acotado y resize agrupado por frame.
+assert.match(app,/Math\.min\(window\.devicePixelRatio\|\|1,3\)/);
+assert.match(app,/cancelAnimationFrame\(resizeRaf\)/);
+
+// 12) Orden y versionado de scripts para evitar caché vieja (deploy sustituye el token por SHA).
 const corePos=html.indexOf('core.js?v=');
 const appPos=html.indexOf('app.js?v=');
 assert.ok(corePos>=0&&appPos>corePos,'core.js debe cargar antes de app.js y ambos deben estar versionados');
 
-console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, recuperación, sincronización y accesibilidad verificadas`);
+console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, integridad, recuperación, sincronización, teclado y rendimiento verificados`);
