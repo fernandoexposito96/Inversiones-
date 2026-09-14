@@ -17,7 +17,7 @@
   const D=s=>C.dateObj(s);
   const full=d=>d instanceof Date&&!Number.isNaN(d.getTime())?new Intl.DateTimeFormat('es-ES',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'}).format(d):'Seleccionar fecha';
   const short=d=>new Intl.DateTimeFormat('es-ES',{timeZone:'UTC',day:'numeric',month:'short'}).format(d);
-  let saving=false,goalMode=false,resizeRaf=0;
+  let saving=false,goalMode=false,resizeRaf=0,editingId=null;
 
   function parseStored(key){
     const text=localStorage.getItem(key);
@@ -69,6 +69,42 @@
 
   let entries=readEntries(),goal=loadGoal(),period='week';
 
+  function ensureHistoryUI(){
+    if($('movementHistory'))return;
+    const style=document.createElement('style');
+    style.textContent=`
+      .historyCard{margin-top:14px}.historyTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.historyTop h2{margin:0;font-size:20px}.historyCount{font-size:10px;font-weight:900;color:#7657ff;background:#f1edff;padding:7px 10px;border-radius:999px}.historyEmpty{text-align:center;color:#8b94a8;font-size:12px;padding:18px 4px}.historyList{display:grid;gap:9px}.historyRow{display:grid;grid-template-columns:1.1fr repeat(3,1fr) auto;gap:8px;align-items:center;padding:11px;border:1px solid #e7ebf3;border-radius:15px;background:#fbfcff}.historyRow span{font-size:9px;color:#8a94aa;display:block}.historyRow strong{display:block;font-size:13px;margin-top:3px}.historyActions{display:flex;gap:6px}.historyActions button{border:0;border-radius:10px;padding:8px 9px;font-size:10px;font-weight:900}.historyEdit{background:#eeeaff;color:#684bff}.historyDelete{background:#fff0f2;color:#d72e47}.historyNet.positive{color:#17b878}.historyNet.negative{color:#ef4056}.editOverlay{position:fixed;inset:0;background:rgba(16,26,55,.42);display:none;align-items:flex-end;justify-content:center;z-index:100;padding:12px}.editOverlay.open{display:flex}.editSheet{width:min(520px,100%);background:#fff;border-radius:24px;padding:18px;box-shadow:0 24px 70px rgba(16,26,55,.24)}.editSheet h2{margin:0 0 14px}.editGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.editGrid label{font-size:10px;font-weight:800;color:#5d6780;display:block;margin-bottom:5px}.editGrid input{width:100%;height:48px;border:1px solid #dfe4ef;border-radius:12px;padding:0 11px}.editGrid .full{grid-column:1/-1}.editBtns{display:flex;gap:8px;margin-top:14px}.editBtns button{flex:1;height:48px;border-radius:12px;font-weight:900}.editCancel{background:#fff;border:1px solid #e1e5ef;color:#59637c}.editSave{border:0;background:linear-gradient(100deg,#35c6f4,#4c6fff,#7756ff);color:#fff}@media(max-width:620px){.historyRow{grid-template-columns:1fr 1fr}.historyActions{grid-column:1/-1}.historyActions button{flex:1}.editGrid{grid-template-columns:1fr}.editGrid .full{grid-column:auto}}
+    `;
+    document.head.appendChild(style);
+    const card=document.createElement('section');card.id='movementHistory';card.className='card historyCard';card.innerHTML=`<div class="historyTop"><h2>Movimientos guardados</h2><span id="historyCount" class="historyCount">0</span></div><div id="historyList" class="historyList"></div>`;
+    const totals=$('allNet')?.closest('.card');if(totals)totals.insertAdjacentElement('afterend',card);else $('investView')?.appendChild(card);
+    const overlay=document.createElement('div');overlay.id='editOverlay';overlay.className='editOverlay';overlay.innerHTML=`<div class="editSheet" role="dialog" aria-modal="true" aria-labelledby="editTitle"><h2 id="editTitle">Editar movimiento</h2><div class="editGrid"><div class="full"><label for="editDate">Fecha</label><input id="editDate" type="date"></div><div><label for="editStake">Apostado (€)</label><input id="editStake" type="number" min="0" step="0.01" inputmode="decimal"></div><div><label for="editReturned">Ganado / Cobrado (€)</label><input id="editReturned" type="number" min="0" step="0.01" inputmode="decimal"></div></div><div class="editBtns"><button id="editCancel" class="editCancel" type="button">Cancelar</button><button id="editSave" class="editSave" type="button">Guardar cambios</button></div></div>`;document.body.appendChild(overlay);
+    $('editCancel').onclick=closeEditor;$('editOverlay').addEventListener('click',e=>{if(e.target===$('editOverlay'))closeEditor()});$('editSave').onclick=saveEditedMovement;
+    $('historyList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const id=b.dataset.id;if(b.dataset.action==='edit')openEditor(id);if(b.dataset.action==='delete')deleteMovement(id)});
+  }
+  function renderHistory(){
+    ensureHistoryUI();
+    const ordered=[...entries].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);$('historyCount').textContent=`${ordered.length} ${ordered.length===1?'movimiento':'movimientos'}`;
+    if(!ordered.length){$('historyList').innerHTML='<div class="historyEmpty">Todavía no hay movimientos guardados.</div>';return;}
+    $('historyList').innerHTML=ordered.map(e=>{const n=C.net(e),cls=n<0?'negative':n>0?'positive':'';return `<article class="historyRow"><div><span>Fecha</span><strong>${full(D(e.date))}</strong></div><div><span>Apostado</span><strong>${euro(e.stake)}</strong></div><div><span>Cobrado</span><strong>${euro(e.returned)}</strong></div><div><span>Resultado</span><strong class="historyNet ${cls}">${n>0?'+':''}${euro(n)}</strong></div><div class="historyActions"><button class="historyEdit" data-action="edit" data-id="${e.id}" type="button">Editar</button><button class="historyDelete" data-action="delete" data-id="${e.id}" type="button">Eliminar</button></div></article>`}).join('');
+  }
+  function openEditor(id){
+    const e=entries.find(x=>x.id===id);if(!e)return;editingId=id;$('editDate').value=e.date;$('editDate').max=iso();$('editStake').value=e.stake;$('editReturned').value=e.returned;$('editOverlay').classList.add('open');setTimeout(()=>$('editStake').focus(),30);
+  }
+  function closeEditor(){editingId=null;$('editOverlay')?.classList.remove('open');}
+  function saveEditedMovement(){
+    if(!editingId)return;const old=entries.find(x=>x.id===editingId);if(!old)return closeEditor();
+    const date=$('editDate').value,stake=Number($('editStake').value),returned=Number($('editReturned').value);
+    if(!C.validDate(date)||date>iso()||!Number.isFinite(stake)||!Number.isFinite(returned)||!(stake>0)||returned<0){alert('Revisa la fecha y las cantidades.');return;}
+    const updated=C.normalizeEntry({...old,date,stake,returned},0);if(!updated)return;
+    const next=entries.map(x=>x.id===editingId?updated:x);if(!saveEntries(next)){alert('No se ha podido guardar el cambio.');return;}
+    entries=next;closeEditor();renderInvest();if(goalMode)renderGoal();
+  }
+  function deleteMovement(id){
+    const e=entries.find(x=>x.id===id);if(!e)return;const n=C.net(e);if(!confirm(`¿Eliminar el movimiento del ${full(D(e.date))} (${n>0?'+':''}${euro(n)})?`))return;
+    const next=entries.filter(x=>x.id!==id);if(!saveEntries(next)){alert('No se ha podido eliminar el movimiento.');return;}entries=next;renderInvest();if(goalMode)renderGoal();
+  }
+
   function setView(nextGoalMode){
     goalMode=Boolean(nextGoalMode);
     $('investView').classList.toggle('active',!goalMode);$('goalView').classList.toggle('active',goalMode);
@@ -86,11 +122,7 @@
       const start=new Date(now);start.setUTCDate(now.getUTCDate()-((now.getUTCDay()+6)%7));const end=new Date(start);end.setUTCDate(start.getUTCDate()+7);return d>=start&&d<end;
     }).sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt-b.createdAt);
   }
-  function setPeriod(next){
-    period=next;
-    document.querySelectorAll('#periods button').forEach(x=>x.classList.toggle('active',x.dataset.period===period));
-    renderInvest();
-  }
+  function setPeriod(next){period=next;document.querySelectorAll('#periods button').forEach(x=>x.classList.toggle('active',x.dataset.period===period));renderInvest();}
 
   function renderInvest(){
     const a=current(),s=C.summary(a),all=C.summary(entries);
@@ -100,7 +132,7 @@
     const activeDays=new Set(a.map(e=>e.date)).size;$('statAvg').textContent=activeDays?euro(s.n/activeDays):euro(0);$('periodLabel').textContent={today:'Hoy',week:'Esta semana',month:'Este mes',all:'Todo'}[period];
     $('allStaked').textContent=euro(all.st);$('allReturned').textContent=euro(all.rt);$('allLoss').textContent=euro(all.loss);$('allNet').textContent=(all.n>0?'+':'')+euro(all.n);
     $('net').className=s.n<0?'negative':s.n>0?'positive':'';$('allNet').className=all.n<0?'negative':all.n>0?'positive':'';
-    $('chart').setAttribute('aria-label',`Evolución ${$('periodLabel').textContent}: ${a.length} movimientos, resultado ${(s.n>0?'+':'')+euro(s.n)}`);drawChart(a);
+    $('chart').setAttribute('aria-label',`Evolución ${$('periodLabel').textContent}: ${a.length} movimientos, resultado ${(s.n>0?'+':'')+euro(s.n)}`);drawChart(a);renderHistory();
   }
 
   function drawChart(a){
@@ -153,5 +185,5 @@
   const today=iso();$('date').value=today;$('date').max=today;$('dateDisplay').textContent=full(D(today));$('date').onchange=()=>{$('dateDisplay').textContent=full(D($('date').value))};
   window.addEventListener('resize',()=>{if(resizeRaf)cancelAnimationFrame(resizeRaf);resizeRaf=requestAnimationFrame(()=>{resizeRaf=0;drawChart(current())})});
   window.addEventListener('storage',event=>{if(event.key===KEY||event.key===BACKUP_KEY){entries=readEntries();goalMode?renderGoal():renderInvest();}if(event.key===GOAL_KEY||event.key===GOAL_BACKUP_KEY){goal=loadGoal();if(goalMode)renderGoal();else $('tabGoal').textContent=`Meta ${euro(goal.amount)}`;}});
-  if('serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});renderInvest();
+  if('serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});ensureHistoryUI();renderInvest();
 })();
