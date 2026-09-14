@@ -2,6 +2,13 @@ if(typeof document!=='undefined'){
   const uiStyle=document.createElement('style');
   uiStyle.textContent='.today{display:none!important}';
   document.head.appendChild(uiStyle);
+  window.addEventListener('load',()=>{
+    if(document.querySelector('script[data-evolution-live]'))return;
+    const live=document.createElement('script');
+    live.src='evolution-live.js';
+    live.dataset.evolutionLive='1';
+    document.body.appendChild(live);
+  });
 }
 
 (function(root,factory){
