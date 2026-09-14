@@ -62,13 +62,14 @@ assert.equal(s.rt,10020);
 assert.equal(s.n,10);
 assert.equal(s.wins,1000);
 
-// Cuenta atrás. La UI usa 91 días inclusivos entre 7 sep y 6 dic.
+// Cuenta atrás inclusiva mientras queda plazo: el 14 sep muestra 84 días,
+// tal como la interfaz acordada. El propio día final pasa a 0.
 let g=C.goalClock('2026-09-07','2026-09-07','2026-12-06',91);
 assert.equal(g.elapsed,0);assert.equal(g.left,91);
 g=C.goalClock('2026-09-14','2026-09-07','2026-12-06',91);
 assert.equal(g.elapsed,7);assert.equal(g.left,84);
 g=C.goalClock('2026-12-05','2026-09-07','2026-12-06',91);
-assert.equal(g.left,1);
+assert.equal(g.left,2);
 g=C.goalClock('2026-12-06','2026-09-07','2026-12-06',91);
 assert.equal(g.left,0);
 g=C.goalClock('2026-09-01','2026-09-07','2026-12-06',91);
