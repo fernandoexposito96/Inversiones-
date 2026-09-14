@@ -74,15 +74,15 @@ assert.equal(s.loss,10);
 assert.equal(s.wins,1);
 assert.equal(s.losses,1);
 
-// Volumen alto: 50.000 movimientos sin deriva en céntimos ni IDs repetidos.
+// Volumen alto: 100.000 movimientos sin deriva en céntimos ni IDs repetidos.
 const bulk=[];
-for(let i=0;i<50000;i++)bulk.push(e('2026-09-07',10.01,10.02,'b'+i));
+for(let i=0;i<100000;i++)bulk.push(e('2026-09-07',10.01,10.02,'b'+i));
 s=C.summary(bulk);
-assert.equal(s.st,500500);
-assert.equal(s.rt,501000);
-assert.equal(s.n,500);
-assert.equal(s.wins,50000);
-assert.equal(C.normalizeEntriesStrict(bulk).length,50000);
+assert.equal(s.st,1001000);
+assert.equal(s.rt,1002000);
+assert.equal(s.n,1000);
+assert.equal(s.wins,100000);
+assert.equal(C.normalizeEntriesStrict(bulk).length,100000);
 
 // El resumen falla de forma explícita ante datos corruptos en vez de producir cifras silenciosamente incorrectas.
 assert.throws(()=>C.summary(null),/array/);
@@ -96,6 +96,9 @@ assert.equal(fpA,fpB);
 assert.equal(C.sameEntries(strictGood,JSON.parse(JSON.stringify(strictGood))),true);
 assert.equal(C.sameEntries(strictGood,[...strictGood,{id:'c',date:'2026-09-09',stake:1,returned:2}]),false);
 assert.equal(C.fingerprintEntries([{id:'a',date:'mal',stake:1,returned:2}]),null);
+assert.equal(C.validateStoredPayload(C.ENTRY_KEY,JSON.stringify(strictGood)),true);
+assert.equal(C.validateStoredPayload(C.ENTRY_KEY,'{"rotura":'),false);
+assert.equal(C.validateStoredPayload(C.GOAL_KEY,JSON.stringify({amount:3000,start:'2026-09-01',end:'2026-12-06'})),true);
 
 // Cuenta atrás inclusiva mientras queda plazo: el 14 sep muestra 84 días.
 let g=C.goalClock('2026-09-07','2026-09-07','2026-12-06',91);
@@ -124,4 +127,52 @@ assert.equal(C.goalDaily(2999.99,3000,1),0.01);
 assert.equal(C.goalDaily(-500,3000,0),3500);
 assert.throws(()=>C.goalDaily(Infinity,3000,10));
 
-console.log('OK: integridad estricta, céntimos seguros, corrupción detectada, huellas, meta y 50.000 movimientos verificados');
+// Fuzz determinista: miles de combinaciones comparadas contra aritmética entera de referencia.
+let seed=123456789,refStake=0,refReturned=0;
+const fuzz=[];
+const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
+for(let i=0;i<5000;i++){
+  const stakeCents=1+(rand()%250000),returnedCents=rand()%400000;
+  refStake+=stakeCents;refReturned+=returnedCents;
+  fuzz.push(e('2026-09-14',stakeCents/100,returnedCents/100,'f'+i));
+}
+const fuzzSummary=C.summary(fuzz);
+assert.equal(C.toCents(fuzzSummary.st),refStake);
+assert.equal(C.toCents(fuzzSummary.rt),refReturned);
+assert.equal(C.toCents(fuzzSummary.n),refReturned-refStake);
+
+// Almacenamiento tolerante a fallos: backups rotativos, recuperación, checksum y conflictos.
+class MockStorage{
+  constructor(){this.map=new Map();}
+  getItem(k){return this.map.has(String(k))?this.map.get(String(k)):null;}
+  setItem(k,v){this.map.set(String(k),String(v));}
+  removeItem(k){this.map.delete(String(k));}
+}
+const mockRoot={Storage:MockStorage,localStorage:new MockStorage()};
+assert.equal(C.installStorageGuard(mockRoot),true);
+assert.equal(C.installStorageGuard(mockRoot),false);
+const store=mockRoot.localStorage;
+const p1=JSON.stringify([{id:'s1',date:'2026-09-14',stake:10,returned:12,createdAt:1}]);
+const p2=JSON.stringify([{id:'s1',date:'2026-09-14',stake:10,returned:12,createdAt:1},{id:'s2',date:'2026-09-14',stake:5,returned:1,createdAt:2}]);
+const p3=JSON.stringify([{id:'s3',date:'2026-09-14',stake:20,returned:30,createdAt:3}]);
+store.setItem(C.ENTRY_KEY,p1);
+assert.equal(store.getItem(C.ENTRY_KEY),p1);
+store.setItem(C.ENTRY_KEY+'.shadow',p1);
+store.setItem(C.ENTRY_KEY,p2);
+assert.equal(store.getItem(C.ENTRY_KEY+'.guard.bak1'),p1);
+const meta=JSON.parse(store.getItem(C.ENTRY_KEY+'.guard.meta'));
+assert.equal(meta.v,C.GUARD_VERSION);assert.equal(meta.hash,C.fingerprintText(p2));assert.ok(meta.rev>=2);
+assert.throws(()=>store.setItem(C.ENTRY_KEY,'{"broken":'),/inválidos/);
+// Corrupción directa simulada: el guard debe recuperar una copia válida automáticamente.
+store.map.set(C.ENTRY_KEY,'{"broken":');
+assert.equal(store.getItem(C.ENTRY_KEY),p1);
+assert.equal(store.map.get(C.ENTRY_KEY),p1);
+// Lectura seguida de cambio externo: una escritura obsoleta debe bloquearse.
+store.getItem(C.ENTRY_KEY);
+store.map.set(C.ENTRY_KEY,p3);
+assert.throws(()=>store.setItem(C.ENTRY_KEY,p2),/Conflicto de escritura/);
+// Si se elimina el principal, queda una copia rotativa recuperable.
+store.map.set(C.ENTRY_KEY,p1);store.getItem(C.ENTRY_KEY);store.removeItem(C.ENTRY_KEY);
+assert.equal(C.validateStoredPayload(C.ENTRY_KEY,store.getItem(C.ENTRY_KEY+'.guard.bak1')),true);
+
+console.log('OK: céntimos seguros, 100.000 movimientos, fuzz, corrupción, recuperación rotativa, checksum y conflictos verificados');

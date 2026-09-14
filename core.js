@@ -2,11 +2,18 @@
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.InversionesCore=api;
+  if(root&&root.localStorage&&root.Storage&&typeof api.installStorageGuard==='function'){
+    try{api.installStorageGuard(root)}catch(error){console.warn('No se pudo activar el blindaje de almacenamiento',error)}
+  }
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
   const MAX_ENTRY_CENTS=100000000000;
   const MAX_ID_LENGTH=128;
+  const ENTRY_KEY='mi-control.entries.v1';
+  const GOAL_KEY='mi-control.goal.v1';
+  const GUARD_VERSION=2;
+  const BACKUP_DEPTH=3;
 
   function toCents(v){
     const n=Number(v);
@@ -95,16 +102,92 @@
     if(daysLeft<=0)return fromCents(remainCents);
     return fromCents(Math.round(remainCents/daysLeft));
   }
-  function fingerprintEntries(items){
-    const normalized=normalizeEntriesStrict(items);if(!normalized)return null;
+  function fingerprintText(text){
+    if(typeof text!=='string')return null;
     let hash=2166136261;
-    const text=JSON.stringify(normalized);
     for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
     return (hash>>>0).toString(16).padStart(8,'0');
+  }
+  function fingerprintEntries(items){
+    const normalized=normalizeEntriesStrict(items);if(!normalized)return null;
+    return fingerprintText(JSON.stringify(normalized));
   }
   function sameEntries(a,b){
     const fa=fingerprintEntries(a),fb=fingerprintEntries(b);
     return fa!==null&&fb!==null&&fa===fb;
   }
-  return {MAX_ENTRY_CENTS,toCents,fromCents,money,validDate,dateObj,normalizeEntry,normalizeEntriesStrict,validateGoal,net,summary,diffDays,goalClock,goalDaily,fingerprintEntries,sameEntries};
+  function validateStoredPayload(key,text){
+    if(typeof text!=='string')return false;
+    try{
+      const parsed=JSON.parse(text);
+      if(key===ENTRY_KEY)return normalizeEntriesStrict(parsed)!==null;
+      if(key===GOAL_KEY)return validateGoal(parsed)!==null;
+      return true;
+    }catch{return false;}
+  }
+  function installStorageGuard(root){
+    const proto=root?.Storage?.prototype,storage=root?.localStorage;
+    if(!proto||!storage||proto.__inversionesGuardV2)return false;
+    const originalGet=proto.getItem,originalSet=proto.setItem,originalRemove=proto.removeItem;
+    if(typeof originalGet!=='function'||typeof originalSet!=='function')return false;
+    const watched=new Set([ENTRY_KEY,GOAL_KEY]),lastSeen=new Map();
+    const rawGet=(self,key)=>originalGet.call(self,key);
+    const rawSet=(self,key,value)=>originalSet.call(self,key,value);
+    const metaKey=key=>`${key}.guard.meta`;
+    const backupKey=(key,n)=>`${key}.guard.bak${n}`;
+    const writeMeta=(self,key,text)=>{
+      const previous=rawGet(self,metaKey(key));let rev=0;
+      try{rev=Math.max(0,Number(JSON.parse(previous||'{}').rev)||0)}catch{}
+      rawSet(self,metaKey(key),JSON.stringify({v:GUARD_VERSION,hash:fingerprintText(text),rev:rev+1,ts:Date.now()}));
+    };
+    const rotate=(self,key,current)=>{
+      for(let i=BACKUP_DEPTH;i>=2;i--){const older=rawGet(self,backupKey(key,i-1));if(older!==null)rawSet(self,backupKey(key,i),older);}
+      if(current!==null&&validateStoredPayload(key,current))rawSet(self,backupKey(key,1),current);
+    };
+    const recover=(self,key)=>{
+      const candidates=[`${key}.shadow`,...Array.from({length:BACKUP_DEPTH},(_,i)=>backupKey(key,i+1))];
+      for(const candidateKey of candidates){
+        const candidate=rawGet(self,candidateKey);
+        if(validateStoredPayload(key,candidate)){
+          rawSet(self,key,candidate);writeMeta(self,key,candidate);lastSeen.set(key,fingerprintText(candidate));return candidate;
+        }
+      }
+      return null;
+    };
+    proto.getItem=function(key){
+      const k=String(key),value=originalGet.call(this,k);
+      if(this!==storage||!watched.has(k))return value;
+      if(validateStoredPayload(k,value)){
+        const hash=fingerprintText(value);lastSeen.set(k,hash);
+        let meta=null;try{meta=JSON.parse(rawGet(this,metaKey(k))||'null')}catch{}
+        if(!meta||meta.v!==GUARD_VERSION||meta.hash!==hash)writeMeta(this,k,value);
+        return value;
+      }
+      const recovered=recover(this,k);return recovered!==null?recovered:value;
+    };
+    proto.setItem=function(key,value){
+      const k=String(key),text=String(value);
+      if(this!==storage||!watched.has(k))return originalSet.call(this,k,text);
+      if(!validateStoredPayload(k,text))throw new TypeError(`Datos inválidos para ${k}`);
+      const current=rawGet(this,k),currentValid=validateStoredPayload(k,current),currentHash=currentValid?fingerprintText(current):null,nextHash=fingerprintText(text),seen=lastSeen.get(k);
+      if(currentValid&&seen&&currentHash!==seen&&nextHash!==currentHash)throw new Error(`Conflicto de escritura detectado en ${k}`);
+      if(currentValid&&currentHash!==nextHash)rotate(this,k,current);
+      originalSet.call(this,k,text);
+      const verified=rawGet(this,k);
+      if(verified!==text){if(current!==null)rawSet(this,k,current);else if(typeof originalRemove==='function')originalRemove.call(this,k);throw new Error(`Verificación de escritura fallida en ${k}`);}
+      writeMeta(this,k,text);lastSeen.set(k,nextHash);
+    };
+    if(typeof originalRemove==='function'){
+      proto.removeItem=function(key){
+        const k=String(key);
+        if(this===storage&&watched.has(k)){
+          const current=rawGet(this,k);if(validateStoredPayload(k,current))rotate(this,k,current);lastSeen.delete(k);
+        }
+        return originalRemove.call(this,k);
+      };
+    }
+    Object.defineProperty(proto,'__inversionesGuardV2',{value:true,enumerable:false,configurable:false});
+    return true;
+  }
+  return {MAX_ENTRY_CENTS,ENTRY_KEY,GOAL_KEY,GUARD_VERSION,BACKUP_DEPTH,toCents,fromCents,money,validDate,dateObj,normalizeEntry,normalizeEntriesStrict,validateGoal,net,summary,diffDays,goalClock,goalDaily,fingerprintText,fingerprintEntries,sameEntries,validateStoredPayload,installStorageGuard};
 });
