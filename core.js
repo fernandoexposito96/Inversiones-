@@ -1,42 +1,3 @@
-if(typeof document!=='undefined'){
-  const uiStyle=document.createElement('style');
-  uiStyle.textContent=`
-    .today{display:none!important}
-  `;
-  document.head.appendChild(uiStyle);
-
-  // Keep the owner's zeroed starting point without resetting future movements repeatedly.
-  try{
-    const RESET_KEY='mi-control.reset.zero.2026-09-14';
-    if(localStorage.getItem(RESET_KEY)!=='1'){
-      localStorage.removeItem('mi-control.entries.v1');
-      localStorage.removeItem('mi-control.entries.v1.backup');
-      localStorage.setItem('mi-control.entries.v1','[]');
-      localStorage.setItem(RESET_KEY,'1');
-    }
-  }catch(error){
-    console.warn('No se pudo completar el reinicio de movimientos',error);
-  }
-
-  window.addEventListener('load',()=>{
-    // The app stays on one page with two internal views: Inversiones and Meta.
-    // Hide history cards in both views while keeping their DOM nodes for calculations.
-    for(const title of [...document.querySelectorAll('h2')]){
-      const text=title.textContent.trim();
-      if(text==='Historial de movimientos'||text==='Historial de la meta'){
-        const card=title.closest('.card');
-        if(card)card.style.display='none';
-      }
-    }
-
-    if(document.querySelector('script[data-evolution-live]'))return;
-    const live=document.createElement('script');
-    live.src='evolution-live.js';
-    live.dataset.evolutionLive='1';
-    document.body.appendChild(live);
-  });
-}
-
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
@@ -62,23 +23,12 @@ if(typeof document!=='undefined'){
     if(!entry||!validDate(entry.date))return null;
     const stake=Number(entry.stake),returned=Number(entry.returned);
     if(!Number.isFinite(stake)||!Number.isFinite(returned)||stake<=0||returned<0)return null;
-    return {
-      id:String(entry.id||`legacy-${index}`),
-      date:entry.date,
-      stake:money(stake),
-      returned:money(returned),
-      createdAt:Number.isFinite(Number(entry.createdAt))?Number(entry.createdAt):0
-    };
+    return {id:String(entry.id||`legacy-${index}`),date:entry.date,stake:money(stake),returned:money(returned),createdAt:Number.isFinite(Number(entry.createdAt))?Number(entry.createdAt):0};
   }
   function net(entry){return fromCents(toCents(entry.returned)-toCents(entry.stake));}
   function summary(items){
     let st=0,rt=0,loss=0,wins=0,losses=0;
-    for(const e of items){
-      const s=toCents(e.stake),r=toCents(e.returned),n=r-s;
-      st+=s;rt+=r;
-      if(n>0)wins++;
-      if(n<0){losses++;loss+=-n;}
-    }
+    for(const e of items){const s=toCents(e.stake),r=toCents(e.returned),n=r-s;st+=s;rt+=r;if(n>0)wins++;if(n<0){losses++;loss+=-n;}}
     return {st:fromCents(st),rt:fromCents(rt),loss:fromCents(loss),n:fromCents(rt-st),wins,losses};
   }
   function dayNumber(d){return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())/86400000;}
