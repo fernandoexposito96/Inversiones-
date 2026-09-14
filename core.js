@@ -18,6 +18,12 @@ if(typeof document!=='undefined'){
   }
 
   window.addEventListener('load',()=>{
+    // Keep history elements in the DOM so calculations/export logic continue working,
+    // but remove the whole history card from the visible interface.
+    const historyTitle=[...document.querySelectorAll('h2')].find(el=>el.textContent.trim()==='Historial de movimientos');
+    const historyCard=historyTitle?.closest('.card');
+    if(historyCard)historyCard.style.display='none';
+
     if(document.querySelector('script[data-evolution-live]'))return;
     const live=document.createElement('script');
     live.src='evolution-live.js';
