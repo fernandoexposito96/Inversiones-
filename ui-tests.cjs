@@ -12,10 +12,12 @@ for(const id of ids)counts.set(id,(counts.get(id)||0)+1);
 const duplicated=[...counts].filter(([,n])=>n!==1);
 assert.deepEqual(duplicated,[],`IDs duplicados: ${JSON.stringify(duplicated)}`);
 
-// 2) Todo elemento que app.js consulta con $('id') debe existir exactamente una vez.
+// 2) Todo elemento estático que app.js consulta con $('id') debe existir exactamente una vez.
+// Los IDs del historial se crean deliberadamente en tiempo de ejecución.
+const dynamicIds=new Set(['movementHistory','historyCount','historyList','editOverlay','editDate','editStake','editReturned','editCancel','editSave']);
 const referenced=[...new Set([...app.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
-const missing=referenced.filter(id=>!counts.has(id));
-assert.deepEqual(missing,[],`IDs usados por app.js que no existen: ${missing.join(', ')}`);
+const missing=referenced.filter(id=>!counts.has(id)&&!dynamicIds.has(id));
+assert.deepEqual(missing,[],`IDs estáticos usados por app.js que no existen: ${missing.join(', ')}`);
 
 // 3) Estructura acordada: dos vistas superiores y una única navegación inferior de Inicio.
 for(const id of ['tabInvest','tabGoal','investView','goalView','navHome','calendar','goalDaily','daysLeft','chart','save'])assert.equal(counts.get(id),1,`Debe existir exactamente una vez: ${id}`);
@@ -30,8 +32,8 @@ assert.match(bottomBlock,/id="navHome"/);
 const periods=[...html.matchAll(/data-period="([^"]+)"/g)].map(m=>m[1]).sort();
 assert.deepEqual(periods,['all','month','today','week']);
 
-// 5) Sin capas/elementos antiguos que ya se eliminaron.
-for(const forbidden of ['Historial de movimientos','id="historyList"','evolution-live.js','RESET_KEY','mi-control.reset.zero'])assert.equal(html.includes(forbidden)||app.includes(forbidden),false,`Resto antiguo detectado: ${forbidden}`);
+// 5) Sin capas antiguas: se permite el nuevo historial editable, pero no la implementación vieja.
+for(const forbidden of ['Historial de movimientos','evolution-live.js','RESET_KEY','mi-control.reset.zero'])assert.equal(html.includes(forbidden)||app.includes(forbidden),false,`Resto antiguo detectado: ${forbidden}`);
 
 // 6) El calendario distingue ganancia, pérdida, neutro y vacío y expone estado accesible.
 for(const token of ["'loss'","'win'","'neutral'","'empty'"])assert.equal(app.includes(token),true,`Falta estado de calendario ${token}`);
@@ -63,7 +65,17 @@ assert.match(app,/event\.key===BACKUP_KEY/);
 assert.match(app,/event\.key===GOAL_KEY/);
 assert.match(app,/event\.key===GOAL_BACKUP_KEY/);
 
-// 10) Accesibilidad de navegación, teclado y gráfica.
+// 10) Historial nuevo: debe poder editar y eliminar, guardando de nuevo los datos.
+assert.match(app,/Movimientos guardados/);
+assert.match(app,/data-action="edit"/);
+assert.match(app,/data-action="delete"/);
+assert.match(app,/function saveEditedMovement\(/);
+assert.match(app,/function deleteMovement\(/);
+assert.match(app,/entries\.map\(x=>x\.id===editingId\?updated:x\)/);
+assert.match(app,/entries\.filter\(x=>x\.id!==id\)/);
+assert.match(app,/confirm\(/);
+
+// 11) Accesibilidad de navegación, teclado, gráfica y editor.
 assert.match(html,/role="tablist"/);
 assert.match(html,/role="tab"/);
 assert.match(html,/role="tabpanel"/);
@@ -73,14 +85,15 @@ assert.match(app,/aria-selected/);
 assert.match(app,/ArrowLeft/);
 assert.match(app,/ArrowRight/);
 assert.match(app,/setAttribute\('aria-label'/);
+assert.match(app,/aria-modal="true"/);
 
-// 11) Rendimiento visual protegido: DPR acotado y resize agrupado por frame.
+// 12) Rendimiento visual protegido: DPR acotado y resize agrupado por frame.
 assert.match(app,/Math\.min\(window\.devicePixelRatio\|\|1,3\)/);
 assert.match(app,/cancelAnimationFrame\(resizeRaf\)/);
 
-// 12) Orden y versionado de scripts para evitar caché vieja (deploy sustituye el token por SHA).
+// 13) Orden y versionado de scripts para evitar caché vieja (deploy sustituye el token por SHA).
 const corePos=html.indexOf('core.js?v=');
 const appPos=html.indexOf('app.js?v=');
 assert.ok(corePos>=0&&appPos>corePos,'core.js debe cargar antes de app.js y ambos deben estar versionados');
 
-console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, integridad, recuperación, sincronización, teclado y rendimiento verificados`);
+console.log(`OK UI: ${ids.length} IDs estáticos únicos, ${referenced.length} referencias JS, historial editable/eliminable, integridad, sincronización y rendimiento verificados`);
