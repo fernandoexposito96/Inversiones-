@@ -21,10 +21,10 @@ assert.deepEqual(missing,[],`IDs usados por app.js que no existen: ${missing.joi
 for(const id of ['tabInvest','tabGoal','investView','goalView','navHome','calendar','goalDaily','daysLeft','chart','save']){
   assert.equal(counts.get(id),1,`Debe existir exactamente una vez: ${id}`);
 }
-assert.equal((html.match(/<nav class="tabs">/g)||[]).length,1);
-const tabsBlock=html.match(/<nav class="tabs">([\s\S]*?)<\/nav>/)?.[1]||'';
+assert.equal((html.match(/<nav\b[^>]*class="tabs"[^>]*>/g)||[]).length,1);
+const tabsBlock=html.match(/<nav\b[^>]*class="tabs"[^>]*>([\s\S]*?)<\/nav>/)?.[1]||'';
 assert.equal((tabsBlock.match(/<button\b/g)||[]).length,2,'Debe haber exactamente 2 pestañas superiores');
-const bottomBlock=html.match(/<nav class="bottom">([\s\S]*?)<\/nav>/)?.[1]||'';
+const bottomBlock=html.match(/<nav\b[^>]*class="bottom"[^>]*>([\s\S]*?)<\/nav>/)?.[1]||'';
 assert.equal((bottomBlock.match(/<button\b/g)||[]).length,1,'La barra inferior debe tener solo Inicio');
 assert.match(bottomBlock,/id="navHome"/);
 
@@ -59,7 +59,13 @@ assert.match(app,/addEventListener\('storage'/);
 assert.match(app,/event\.key===KEY/);
 assert.match(app,/event\.key===GOAL_KEY/);
 
-// 10) Estado accesible de las pestañas superiores.
+// 10) Accesibilidad mínima de navegación y gráfica.
+assert.match(html,/role="tablist"/);
+assert.match(html,/role="tab"/);
+assert.match(html,/role="tabpanel"/);
+assert.match(html,/aria-controls="investView"/);
+assert.match(html,/aria-controls="goalView"/);
+assert.match(html,/aria-label="Gráfica de evolución del resultado acumulado"/);
 assert.match(app,/aria-selected/);
 
 // 11) Orden y versionado de scripts para evitar caché vieja.
@@ -67,4 +73,4 @@ const corePos=html.indexOf('core.js?v=');
 const appPos=html.indexOf('app.js?v=');
 assert.ok(corePos>=0&&appPos>corePos,'core.js debe cargar antes de app.js y ambos deben estar versionados');
 
-console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, recuperación interna y sincronización verificadas`);
+console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, recuperación, sincronización y accesibilidad verificadas`);
