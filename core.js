@@ -25,6 +25,20 @@
     if(!Number.isFinite(stake)||!Number.isFinite(returned)||stake<=0||returned<0)return null;
     return {id:String(entry.id||`legacy-${index}`),date:entry.date,stake:money(stake),returned:money(returned),createdAt:Number.isFinite(Number(entry.createdAt))?Number(entry.createdAt):0};
   }
+  function normalizeEntriesStrict(raw){
+    if(!Array.isArray(raw))return null;
+    const out=[],ids=new Set();
+    for(let i=0;i<raw.length;i++){
+      const entry=normalizeEntry(raw[i],i);
+      if(!entry||ids.has(entry.id))return null;
+      ids.add(entry.id);out.push(entry);
+    }
+    return out;
+  }
+  function validateGoal(raw){
+    if(!raw||!Number.isFinite(Number(raw.amount))||Number(raw.amount)<=0||!validDate(raw.start)||!validDate(raw.end)||raw.end<raw.start)return null;
+    return {amount:money(Number(raw.amount)),start:raw.start,end:raw.end};
+  }
   function net(entry){return fromCents(toCents(entry.returned)-toCents(entry.stake));}
   function summary(items){
     let st=0,rt=0,loss=0,wins=0,losses=0;
@@ -35,7 +49,7 @@
   function diffDays(a,b){return Math.round(dayNumber(b)-dayNumber(a));}
   function goalClock(todayIso,startIso,endIso,total){
     const start=dateObj(startIso),end=dateObj(endIso),today=dateObj(todayIso);
-    if(!start||!end||!today)throw new Error('Fecha de meta inválida');
+    if(!start||!end||!today||!Number.isFinite(total)||total<=0)throw new Error('Fecha de meta inválida');
     const elapsed=Math.max(0,Math.min(total,diffDays(start,today)));
     const left=today<start?total:today>=end?0:Math.max(0,total-elapsed);
     return {start,end,today,elapsed,left};
@@ -46,5 +60,5 @@
     if(daysLeft<=0)return remain;
     return money(remain/daysLeft);
   }
-  return {toCents,fromCents,money,validDate,dateObj,normalizeEntry,net,summary,diffDays,goalClock,goalDaily};
+  return {toCents,fromCents,money,validDate,dateObj,normalizeEntry,normalizeEntriesStrict,validateGoal,net,summary,diffDays,goalClock,goalDaily};
 });
