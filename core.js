@@ -1,6 +1,10 @@
 if(typeof document!=='undefined'){
   const uiStyle=document.createElement('style');
-  uiStyle.textContent='.today{display:none!important}';
+  uiStyle.textContent=`
+    .today{display:none!important}
+    .tabs{display:none!important}
+    #goalView{display:block!important;margin-top:14px}
+  `;
   document.head.appendChild(uiStyle);
 
   // One-time reset requested by the owner: clear movement history and totals,
@@ -18,11 +22,18 @@ if(typeof document!=='undefined'){
   }
 
   window.addEventListener('load',()=>{
-    // Keep history elements in the DOM so calculations/export logic continue working,
-    // but remove the whole history card from the visible interface.
-    const historyTitle=[...document.querySelectorAll('h2')].find(el=>el.textContent.trim()==='Historial de movimientos');
-    const historyCard=historyTitle?.closest('.card');
-    if(historyCard)historyCard.style.display='none';
+    // Render the goal once, then return to Inicio. CSS keeps both blocks in one single screen.
+    document.getElementById('tabGoal')?.click();
+    document.getElementById('tabInvest')?.click();
+
+    // Keep internal history nodes for calculations, but remove all history UI from the screen.
+    for(const title of [...document.querySelectorAll('h2')]){
+      const text=title.textContent.trim();
+      if(text==='Historial de movimientos'||text==='Historial de la meta'){
+        const card=title.closest('.card');
+        if(card)card.style.display='none';
+      }
+    }
 
     if(document.querySelector('script[data-evolution-live]'))return;
     const live=document.createElement('script');
