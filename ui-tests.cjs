@@ -33,7 +33,7 @@ const periods=[...html.matchAll(/data-period="([^"]+)"/g)].map(m=>m[1]).sort();
 assert.deepEqual(periods,['all','month','today','week']);
 
 // 5) Sin capas/elementos antiguos que ya se eliminaron.
-for(const forbidden of ['Historial de movimientos','id="historyList"','evolution-live.js']){
+for(const forbidden of ['Historial de movimientos','id="historyList"','evolution-live.js','RESET_KEY','mi-control.reset.zero']){
   assert.equal(html.includes(forbidden)||app.includes(forbidden),false,`Resto antiguo detectado: ${forbidden}`);
 }
 
@@ -48,9 +48,23 @@ assert.match(app,/saveEntries\(next\)/);
 assert.match(app,/Number\.isFinite\(stake\)/);
 assert.match(app,/Number\.isFinite\(returned\)/);
 
-// 8) Orden y versionado de scripts para evitar caché vieja.
+// 8) Copia interna y recuperación automática obligatorias.
+assert.match(app,/const BACKUP_KEY=KEY\+'\.shadow'/);
+assert.match(app,/parseStored\(BACKUP_KEY\)/);
+assert.match(app,/localStorage\.setItem\(BACKUP_KEY,payload\)/);
+assert.match(app,/localStorage\.setItem\(KEY,JSON\.stringify\(recovered\)\)/);
+
+// 9) Sincronización entre pestañas para evitar sobrescrituras con estado viejo.
+assert.match(app,/addEventListener\('storage'/);
+assert.match(app,/event\.key===KEY/);
+assert.match(app,/event\.key===GOAL_KEY/);
+
+// 10) Estado accesible de las pestañas superiores.
+assert.match(app,/aria-selected/);
+
+// 11) Orden y versionado de scripts para evitar caché vieja.
 const corePos=html.indexOf('core.js?v=');
 const appPos=html.indexOf('app.js?v=');
 assert.ok(corePos>=0&&appPos>corePos,'core.js debe cargar antes de app.js y ambos deben estar versionados');
 
-console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, 2 vistas y 1 navegación inferior verificadas`);
+console.log(`OK UI: ${ids.length} IDs únicos, ${referenced.length} referencias JS resueltas, recuperación interna y sincronización verificadas`);
