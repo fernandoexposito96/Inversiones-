@@ -2,13 +2,10 @@ if(typeof document!=='undefined'){
   const uiStyle=document.createElement('style');
   uiStyle.textContent=`
     .today{display:none!important}
-    .tabs{display:none!important}
-    #goalView{display:block!important;margin-top:14px}
   `;
   document.head.appendChild(uiStyle);
 
-  // One-time reset requested by the owner: clear movement history and totals,
-  // while preserving the configured 3,000 € goal and its dates.
+  // Keep the owner's zeroed starting point without resetting future movements repeatedly.
   try{
     const RESET_KEY='mi-control.reset.zero.2026-09-14';
     if(localStorage.getItem(RESET_KEY)!=='1'){
@@ -22,11 +19,8 @@ if(typeof document!=='undefined'){
   }
 
   window.addEventListener('load',()=>{
-    // Render the goal once, then return to Inicio. CSS keeps both blocks in one single screen.
-    document.getElementById('tabGoal')?.click();
-    document.getElementById('tabInvest')?.click();
-
-    // Keep internal history nodes for calculations, but remove all history UI from the screen.
+    // The app stays on one page with two internal views: Inversiones and Meta.
+    // Hide history cards in both views while keeping their DOM nodes for calculations.
     for(const title of [...document.querySelectorAll('h2')]){
       const text=title.textContent.trim();
       if(text==='Historial de movimientos'||text==='Historial de la meta'){
