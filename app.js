@@ -98,11 +98,11 @@
     if(!C.validDate(date)||date>iso()||!Number.isFinite(stake)||!Number.isFinite(returned)||!(stake>0)||returned<0){alert('Revisa la fecha y las cantidades.');return;}
     const updated=C.normalizeEntry({...old,date,stake,returned},0);if(!updated)return;
     const next=entries.map(x=>x.id===editingId?updated:x);if(!saveEntries(next)){alert('No se ha podido guardar el cambio.');return;}
-    entries=next;closeEditor();renderInvest();if(goalMode)renderGoal();
+    entries=next;closeEditor();renderInvest();renderGoal();
   }
   function deleteMovement(id){
     const e=entries.find(x=>x.id===id);if(!e)return;const n=C.net(e);if(!confirm(`¿Eliminar el movimiento del ${full(D(e.date))} (${n>0?'+':''}${euro(n)})?`))return;
-    const next=entries.filter(x=>x.id!==id);if(!saveEntries(next)){alert('No se ha podido eliminar el movimiento.');return;}entries=next;renderInvest();if(goalMode)renderGoal();
+    const next=entries.filter(x=>x.id!==id);if(!saveEntries(next)){alert('No se ha podido eliminar el movimiento.');return;}entries=next;renderInvest();renderGoal();
   }
 
   function setView(nextGoalMode){
@@ -151,11 +151,20 @@
     $('tabGoal').textContent=`Meta ${euro(goal.amount)}`;$('goalValue').textContent=euro(goal.amount);$('goalRange').textContent=`Del ${full(D(goal.start))} al ${full(D(goal.end))}`;$('goalBar').style.width=progress+'%';
     $('goalProgress').textContent=progress.toFixed(1).replace('.',',')+'% completado';$('goalRemaining').textContent=s.n>=goal.amount?'Meta alcanzada':'Faltan '+euro(remain);$('goalNet').textContent=(s.n>0?'+':'')+euro(s.n);$('goalReturned').textContent=euro(s.rt);$('goalStaked').textContent=euro(s.st);$('goalNet').className=s.n<0?'negative':s.n>0?'positive':'';
     $('daysLeft').textContent=g.left;$('dateInfo').innerHTML=`Hoy: ${full(g.today)}<br>Meta: ${full(g.end)}`;const daily=C.goalDaily(s.n,goal.amount,g.left);$('goalDaily').textContent=s.n>=goal.amount?'0,00 €/día':g.left?`${euro(daily)}/día`:'Plazo finalizado';$('goalDailySub').textContent=s.n>=goal.amount?'Objetivo conseguido.':g.left?`Faltan ${euro(remain)} en ${g.left} días.`:`Faltan ${euro(remain)}.`;$('daysPassed').textContent=`Día ${g.elapsed} de ${total}`;
-    const byDay=new Map();for(const e of list)byDay.set(e.date,C.money((byDay.get(e.date)||0)+C.net(e)));let html='';
+    const byDay=new Map();
+    for(const e of list){
+      const bucket=byDay.get(e.date)||{stake:0,returned:0};
+      bucket.stake=C.money(bucket.stake+e.stake);bucket.returned=C.money(bucket.returned+e.returned);byDay.set(e.date,bucket);
+    }
+    let html='';
     for(let i=0;i<total;i++){
-      const d=new Date(g.start);d.setUTCDate(g.start.getUTCDate()+i);const di=d.toISOString().slice(0,10),hasActivity=byDay.has(di),sum=byDay.get(di)||0;const state=hasActivity?(sum<0?'loss':sum>0?'win':'neutral'):'empty';const status=state==='loss'?'pérdida':state==='win'?'ganancia':state==='neutral'?'resultado neutro':'sin movimientos';const style=state==='loss'?'background:#ef4056;border-color:#ef4056;color:#fff':state==='win'?'background:#17b878;border-color:#17b878;color:#fff':'background:#fff;border-color:#e1e6f0;color:#101a37';const result=hasActivity?`<small style="color:${state==='loss'||state==='win'?'#fff':'#7c879f'};font-weight:900">${sum>0?'+':''}${euro(sum)}</small>`:'';const aria=`Día ${i+1}, ${short(d)}, ${status}${hasActivity?`, ${sum>0?'+':''}${euro(sum)}`:''}`;html+=`<div class="day ${di===iso()?'today':''}" data-state="${state}" role="listitem" aria-label="${aria}" title="${aria}" style="${style}"><b>${i+1}</b><small style="color:${state==='loss'||state==='win'?'rgba(255,255,255,.85)':'#8b94a8'}">${short(d)}</small>${result}</div>`;
+      const d=new Date(g.start);d.setUTCDate(g.start.getUTCDate()+i);const di=d.toISOString().slice(0,10),day=byDay.get(di),hasActivity=Boolean(day),sum=hasActivity?C.money(day.returned-day.stake):0;const state=hasActivity?(sum<0?'loss':sum>0?'win':'neutral'):'empty';const status=state==='loss'?'pérdida':state==='win'?'ganancia':state==='neutral'?'resultado neutro':'sin movimientos';const style=state==='loss'?'background:#ef4056;border-color:#ef4056;color:#fff':state==='win'?'background:#17b878;border-color:#17b878;color:#fff':'background:#fff;border-color:#e1e6f0;color:#101a37';const result=hasActivity?`<small style="color:${state==='loss'||state==='win'?'#fff':'#7c879f'};font-weight:900">${sum>0?'+':''}${euro(sum)}</small>`:'';const aria=`Día ${i+1}, ${short(d)}, ${status}${hasActivity?`, ${sum>0?'+':''}${euro(sum)}`:''}`;html+=`<div class="day ${di===iso()?'today':''}" data-state="${state}" data-date="${di}" role="listitem" aria-label="${aria}" title="${aria}" style="${style}"><b>${i+1}</b><small style="color:${state==='loss'||state==='win'?'rgba(255,255,255,.85)':'#8b94a8'}">${short(d)}</small>${result}</div>`;
     }
     $('calendar').setAttribute('role','list');$('calendar').innerHTML=html;
+  }
+
+  function syncFromStorage(){
+    entries=readEntries();goal=loadGoal();renderInvest();renderGoal();
   }
 
   $('tabInvest').onclick=()=>setView(false);$('tabGoal').onclick=()=>setView(true);$('navHome').onclick=()=>setView(false);
@@ -172,7 +181,7 @@
         const d=D(date),now=D(iso());period=d&&now&&d.getUTCFullYear()===now.getUTCFullYear()&&d.getUTCMonth()===now.getUTCMonth()?'month':'all';
         document.querySelectorAll('#periods button').forEach(x=>x.classList.toggle('active',x.dataset.period===period));
       }
-      renderInvest();
+      renderInvest();renderGoal();
     }else alert('No se ha podido guardar el movimiento. Tus datos anteriores siguen intactos.');
     setTimeout(()=>{saving=false;$('save').disabled=false;$('save').style.opacity=''},350);
   };
@@ -184,6 +193,8 @@
   for(const [id,label] of [['stake','Cantidad apostada en euros'],['returnedInput','Cantidad ganada o cobrada en euros'],['goalAmountInput','Objetivo de la meta en euros'],['goalStartInput','Fecha de inicio de la meta'],['goalEndInput','Fecha final de la meta']])$(id)?.setAttribute('aria-label',label);
   const today=iso();$('date').value=today;$('date').max=today;$('dateDisplay').textContent=full(D(today));$('date').onchange=()=>{$('dateDisplay').textContent=full(D($('date').value))};
   window.addEventListener('resize',()=>{if(resizeRaf)cancelAnimationFrame(resizeRaf);resizeRaf=requestAnimationFrame(()=>{resizeRaf=0;drawChart(current())})});
-  window.addEventListener('storage',event=>{if(event.key===KEY||event.key===BACKUP_KEY){entries=readEntries();goalMode?renderGoal():renderInvest();}if(event.key===GOAL_KEY||event.key===GOAL_BACKUP_KEY){goal=loadGoal();if(goalMode)renderGoal();else $('tabGoal').textContent=`Meta ${euro(goal.amount)}`;}});
-  if('serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});ensureHistoryUI();renderInvest();
+  window.addEventListener('storage',event=>{if([KEY,BACKUP_KEY,GOAL_KEY,GOAL_BACKUP_KEY].includes(event.key))syncFromStorage();});
+  window.addEventListener('focus',syncFromStorage);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncFromStorage();});
+  if('serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});ensureHistoryUI();renderInvest();renderGoal();
 })();
