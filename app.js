@@ -97,7 +97,16 @@
     const daily=C.goalDaily(s.n,goal.amount,g.left);$('goalDaily').textContent=s.n>=goal.amount?'0,00 €/día':g.left?`${euro(daily)}/día`:'Plazo finalizado';$('goalDailySub').textContent=s.n>=goal.amount?'Objetivo conseguido.':g.left?`Faltan ${euro(remain)} en ${g.left} días.`:`Faltan ${euro(remain)}.`;
     $('daysPassed').textContent=`Día ${g.elapsed} de ${total}`;
     const byDay=new Map();for(const e of list)byDay.set(e.date,C.money((byDay.get(e.date)||0)+C.net(e)));
-    let html='';for(let i=0;i<total;i++){const d=new Date(g.start);d.setUTCDate(g.start.getUTCDate()+i);const di=d.toISOString().slice(0,10),sum=byDay.get(di)||0;html+=`<div class="day ${di===iso()?'today':''} ${d<g.today?'done':''}"><b>${i+1}</b><small>${short(d)}</small>${sum!==0?`<small class="${sum<0?'negative':'positive'}">${sum>0?'+':''}${euro(sum)}</small>`:''}</div>`} $('calendar').innerHTML=html;
+    let html='';
+    for(let i=0;i<total;i++){
+      const d=new Date(g.start);d.setUTCDate(g.start.getUTCDate()+i);
+      const di=d.toISOString().slice(0,10),hasActivity=byDay.has(di),sum=byDay.get(di)||0;
+      const state=hasActivity?(sum<0?'loss':sum>0?'win':'neutral'):'empty';
+      const style=state==='loss'?'background:#ef4056;border-color:#ef4056;color:#fff':state==='win'?'background:#17b878;border-color:#17b878;color:#fff':'background:#fff;border-color:#e1e6f0;color:#101a37';
+      const result=hasActivity?`<small style="color:${state==='loss'||state==='win'?'#fff':'#7c879f'};font-weight:900">${sum>0?'+':''}${euro(sum)}</small>`:'';
+      html+=`<div class="day ${di===iso()?'today':''}" data-state="${state}" style="${style}"><b>${i+1}</b><small style="color:${state==='loss'||state==='win'?'rgba(255,255,255,.85)':'#8b94a8'}">${short(d)}</small>${result}</div>`;
+    }
+    $('calendar').innerHTML=html;
   }
 
   $('tabInvest').onclick=()=>setView(false);$('tabGoal').onclick=()=>setView(true);$('navHome').onclick=()=>setView(false);
