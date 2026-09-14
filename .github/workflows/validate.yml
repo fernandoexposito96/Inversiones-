@@ -22,11 +22,16 @@ jobs:
           node --check tests.cjs
       - name: Run calculation tests
         run: node tests.cjs
-      - name: Check app wiring
+      - name: Check clean app wiring
         run: |
-          grep -q '<script src="core.js"></script>' index.html
-          grep -q '<script src="app.js"></script>' index.html
+          grep -Eq '<script src="core.js(\?[^\"]*)?"></script>' index.html
+          grep -Eq '<script src="app.js(\?[^\"]*)?"></script>' index.html
           grep -q 'id="tabInvest"' index.html
           grep -q 'id="tabGoal"' index.html
-          grep -q 'id="historyList"' index.html
+          grep -q 'id="investView"' index.html
+          grep -q 'id="goalView"' index.html
           grep -q 'id="goalDaily"' index.html
+          grep -q 'id="daysLeft"' index.html
+          ! grep -q 'id="historyList"' index.html
+          ! grep -q 'Historial de movimientos' index.html
+          ! test -f evolution-live.js
