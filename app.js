@@ -4,8 +4,8 @@
   if(!C)throw new Error('No se ha cargado core.js');
 
   const KEY='mi-control.entries.v1';
+  const BACKUP_KEY=KEY+'.shadow';
   const GOAL_KEY='mi-control.goal.v1';
-  const RESET_KEY='mi-control.reset.zero.2026-09-14.v2';
   const DEFAULT_GOAL={amount:3000,start:'2026-09-07',end:'2026-12-06'};
   const TZ='Europe/Madrid';
   const $=id=>document.getElementById(id);
@@ -16,25 +16,42 @@
   const D=s=>C.dateObj(s);
   const full=d=>d instanceof Date&&!Number.isNaN(d.getTime())?new Intl.DateTimeFormat('es-ES',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'}).format(d):'Seleccionar fecha';
   const short=d=>new Intl.DateTimeFormat('es-ES',{timeZone:'UTC',day:'numeric',month:'short'}).format(d);
-  let saving=false;
+  let saving=false,goalMode=false;
 
-  try{
-    if(localStorage.getItem(RESET_KEY)!=='1'){
-      localStorage.setItem(KEY,'[]');
-      localStorage.removeItem(KEY+'.backup');
-      localStorage.setItem(RESET_KEY,'1');
-    }
-  }catch(error){console.warn('No se pudo completar el reinicio inicial',error)}
-
+  function normalizeList(raw){
+    if(!Array.isArray(raw))return null;
+    return raw.map((e,i)=>C.normalizeEntry(e,i)).filter(Boolean);
+  }
+  function parseStored(key){
+    const text=localStorage.getItem(key);
+    if(text===null)return [];
+    const parsed=JSON.parse(text);
+    const normalized=normalizeList(parsed);
+    if(!normalized)throw new Error(`Formato inválido en ${key}`);
+    return normalized;
+  }
   function readEntries(){
-    try{
-      const raw=JSON.parse(localStorage.getItem(KEY)||'[]');
-      return (Array.isArray(raw)?raw:[]).map((e,i)=>C.normalizeEntry(e,i)).filter(Boolean);
-    }catch(error){console.warn('No se pudieron leer los movimientos',error);return []}
+    try{return parseStored(KEY)}catch(error){
+      console.warn('Datos principales dañados; se intentará recuperar la copia interna',error);
+      try{
+        const recovered=parseStored(BACKUP_KEY);
+        localStorage.setItem(KEY,JSON.stringify(recovered));
+        return recovered;
+      }catch(backupError){
+        console.error('No se pudieron recuperar los movimientos',backupError);
+        return [];
+      }
+    }
   }
   function saveEntries(list){
-    try{localStorage.setItem(KEY,JSON.stringify(list));return true}
-    catch(error){console.error('No se pudieron guardar los movimientos',error);return false}
+    try{
+      const normalized=normalizeList(list);
+      if(!normalized)throw new Error('Lista de movimientos inválida');
+      const payload=JSON.stringify(normalized);
+      localStorage.setItem(KEY,payload);
+      try{localStorage.setItem(BACKUP_KEY,payload)}catch(error){console.warn('No se pudo actualizar la copia interna',error)}
+      return true;
+    }catch(error){console.error('No se pudieron guardar los movimientos',error);return false}
   }
   function loadGoal(){
     try{
@@ -50,11 +67,14 @@
 
   let entries=readEntries(),goal=loadGoal(),period='week';
 
-  function setView(goalMode){
+  function setView(nextGoalMode){
+    goalMode=Boolean(nextGoalMode);
     $('investView').classList.toggle('active',!goalMode);
     $('goalView').classList.toggle('active',goalMode);
     $('tabInvest').classList.toggle('active',!goalMode);
     $('tabGoal').classList.toggle('active',goalMode);
+    $('tabInvest').setAttribute('aria-selected',String(!goalMode));
+    $('tabGoal').setAttribute('aria-selected',String(goalMode));
     if(goalMode)renderGoal();else renderInvest();
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -149,6 +169,10 @@
 
   const today=iso();$('date').value=today;$('date').max=today;$('dateDisplay').textContent=full(D(today));$('date').onchange=()=>{$('dateDisplay').textContent=full(D($('date').value))};
   window.addEventListener('resize',()=>requestAnimationFrame(()=>drawChart(current())));
+  window.addEventListener('storage',event=>{
+    if(event.key===KEY||event.key===BACKUP_KEY){entries=readEntries();goalMode?renderGoal():renderInvest();}
+    if(event.key===GOAL_KEY){goal=loadGoal();if(goalMode)renderGoal();else $('tabGoal').textContent=`Meta ${euro(goal.amount)}`;}
+  });
   if('serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
   renderInvest();
 })();
