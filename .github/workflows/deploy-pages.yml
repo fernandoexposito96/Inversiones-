@@ -28,14 +28,17 @@ jobs:
       - name: Build lean static site
         run: |
           mkdir -p _site
-          cp index.html core.js app.js _site/
+          cp index.html core.js app.js all-overview.js _site/
           sed -i "s/core.js?v=[^\"]*/core.js?v=${GITHUB_SHA}/" _site/index.html
           sed -i "s/app.js?v=[^\"]*/app.js?v=${GITHUB_SHA}/" _site/index.html
+          sed -i "s#</body>#<script src=\"all-overview.js?v=${GITHUB_SHA}\"></script></body>#" _site/index.html
           test -s _site/index.html
           test -s _site/core.js
           test -s _site/app.js
+          test -s _site/all-overview.js
           grep -q "core.js?v=${GITHUB_SHA}" _site/index.html
           grep -q "app.js?v=${GITHUB_SHA}" _site/index.html
+          grep -q "all-overview.js?v=${GITHUB_SHA}" _site/index.html
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
@@ -50,10 +53,11 @@ jobs:
           set -euo pipefail
           for i in 1 2 3 4 5 6; do
             HTML="$(curl -fsSL --max-time 20 "${PAGE_URL}?check=${GITHUB_SHA}" || true)"
-            if grep -Fq "app.js?v=${GITHUB_SHA}" <<<"$HTML" && grep -Fq 'Meta 3.000' <<<"$HTML"; then
+            if grep -Fq "app.js?v=${GITHUB_SHA}" <<<"$HTML" && grep -Fq "all-overview.js?v=${GITHUB_SHA}" <<<"$HTML" && grep -Fq 'Meta 3.000' <<<"$HTML"; then
               APP_JS="$(curl -fsSL --max-time 20 "${PAGE_URL}app.js?v=${GITHUB_SHA}" || true)"
               CORE_JS="$(curl -fsSL --max-time 20 "${PAGE_URL}core.js?v=${GITHUB_SHA}" || true)"
-              if grep -Fq 'normalizeEntriesStrict' <<<"$APP_JS" && grep -Fq 'validateGoal' <<<"$CORE_JS"; then
+              OVERVIEW_JS="$(curl -fsSL --max-time 20 "${PAGE_URL}all-overview.js?v=${GITHUB_SHA}" || true)"
+              if grep -Fq 'normalizeEntriesStrict' <<<"$APP_JS" && grep -Fq 'validateGoal' <<<"$CORE_JS" && grep -Fq 'allOverview' <<<"$OVERVIEW_JS"; then
                 echo "Published app smoke test OK"
                 exit 0
               fi
